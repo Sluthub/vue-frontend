@@ -379,7 +379,7 @@
   "series": "Series",
   "server": "Server",
   "serverVersion": "Server version",
-  "serverVersionTooLow": "Server version needs to be 10.7.0 or higher",
+  "serverVersionTooLow": "Server version needs to be {version} or higher",
   "settings": {
     "account": {
       "account": "Account",
@@ -593,6 +593,9 @@
     }
   },
   "unknown": "Unknown",
+  "unknownTitle": "Unknown title",
+  "unknownArtist": "Unknown artist",
+  "unknownAlbum": "Unknown album",
   "unliked": "Unliked",
   "unplayed": "Unplayed",
   "upNext": "Up next",

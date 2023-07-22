@@ -61,8 +61,13 @@
         <v-window-item :value="4">
           <v-row>
             <v-col cols="12" md="7">
-              <!-- eslint-disable-next-line vue/no-v-html -->
-              <span v-if="overview" class="item-overview" v-html="overview" />
+              <!-- eslint-disable vue/no-v-html -
+                Output is properly sanitized using sanitizeHtml -->
+              <span
+                v-if="item.Overview"
+                class="item-overview"
+                v-html="sanitizeHtml(item.Overview, true)" />
+              <!-- eslint-enable vue/no-v-html -->
             </v-col>
             <v-col cols="12" md="5">
               <v-row v-if="birthDate || birthPlace" no-gutters>

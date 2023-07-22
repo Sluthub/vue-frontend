@@ -85,11 +85,12 @@
                 <v-row>
                   <v-col>
                     <v-col cols="12" md="7">
-                      <!-- eslint-disable vue/no-v-html -->
+                      <!-- eslint-disable vue/no-v-html -
+                        Output is properly sanitized using sanitizeHtml -->
                       <span
-                        v-if="overview"
+                        v-if="item.Overview"
                         class="item-overview"
-                        v-html="overview" />
+                        v-html="sanitizeHtml(item.Overview, true)" />
                       <!-- eslint-enable vue/no-v-html -->
                     </v-col>
                   </v-col>

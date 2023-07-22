@@ -4,11 +4,11 @@
  * It must be used in an agnostic way to cover both local and remote playback.
  * If you want to handle the state of the local player element, use playerElement store instead.
  */
-import { reactive, watch } from 'vue';
-import { shuffle, isNil, cloneDeep } from 'lodash-es';
+import { reactive, watch, watchEffect } from 'vue';
+import { shuffle, isNil } from 'lodash-es';
+import { v4 } from 'uuid';
 import {
   BaseItemDto,
-  ChapterInfo,
   ItemFields,
   ItemFilter,
   MediaSourceInfo,
@@ -24,6 +24,7 @@ import { getTvShowsApi } from '@jellyfin/sdk/lib/utils/api/tv-shows-api';
 import { getPlaystateApi } from '@jellyfin/sdk/lib/utils/api/playstate-api';
 import { getMediaInfoApi } from '@jellyfin/sdk/lib/utils/api/media-info-api';
 import { getUserLibraryApi } from '@jellyfin/sdk/lib/utils/api/user-library-api';
+import { useEventListener } from '@vueuse/core';
 /**
  * It's important to import these from globals.ts directly to avoid cycles and ReferenceError
  */
@@ -33,6 +34,7 @@ import { usei18n, useRemote, useSnackbar } from '@/composables';
 import { getImageInfo } from '@/utils/images';
 import { msToTicks } from '@/utils/time';
 import playbackProfile from '@/utils/playback-profiles';
+import { getItemRuntime } from '@/utils/items';
 
 /**
  * == INTERFACES AND TYPES ==
@@ -76,18 +78,16 @@ export interface PlaybackExternalTrack extends PlaybackTrack {
 interface PlaybackManagerState {
   status: PlaybackStatus;
   currentSourceUrl: string | undefined;
-  isRemotePlayer: boolean;
-  lastItemIndex: number | undefined;
   currentItemIndex: number | undefined;
   currentMediaSource: MediaSourceInfo | undefined;
   currentMediaSourceIndex: number | undefined;
   currentVideoStreamIndex: number | undefined;
   currentAudioStreamIndex: number | undefined;
   currentSubtitleStreamIndex: number | undefined;
-  currentItemChapters: ChapterInfo[] | undefined;
   remotePlaybackTime: number;
   lastProgressUpdate: number;
   remoteCurrentVolume: number;
+  isRemotePlayer: boolean;
   isRemoteMuted: boolean;
   isShuffling: boolean;
   repeatMode: RepeatMode;
@@ -114,21 +114,22 @@ class PlaybackManagerStore {
   /**
    * == STATE ==
    */
+  /**
+   * Reactive state
+   */
   private _defaultState: PlaybackManagerState = {
     status: PlaybackStatus.Stopped,
     currentSourceUrl: undefined,
-    isRemotePlayer: false,
-    lastItemIndex: undefined,
     currentItemIndex: undefined,
     currentMediaSource: undefined,
     currentMediaSourceIndex: undefined,
     currentVideoStreamIndex: undefined,
     currentAudioStreamIndex: undefined,
     currentSubtitleStreamIndex: undefined,
-    currentItemChapters: undefined,
     remotePlaybackTime: 0,
     lastProgressUpdate: 0,
     remoteCurrentVolume: 100,
+    isRemotePlayer: false,
     isRemoteMuted: false,
     isShuffling: false,
     repeatMode: RepeatMode.RepeatNone,
@@ -140,17 +141,16 @@ class PlaybackManagerStore {
   };
 
   private _state = reactive<PlaybackManagerState>(
-    cloneDeep(this._defaultState)
+    structuredClone(this._defaultState)
   );
+  /**
+   * Non-reactive state
+   */
+  private _isProgressUpdating = false;
+  private _mediaSourceRequestId: string | undefined = undefined;
   /**
    * == GETTERS AND SETTERS ==
    */
-  /**
-   * Previously, we created a new MediaMetadata every time the item changed. However,
-   * that made the MediaSession controls disappear for a second. Keeping the metadata
-   * as a global variable and updating it solves this problem.
-   */
-  private _mediaMetadata = new MediaMetadata();
   public get status(): PlaybackStatus {
     return this._state.status;
   }
@@ -200,32 +200,26 @@ class PlaybackManagerStore {
    * Get reactive BaseItemDto's objects of the queue
    */
   public get queue(): BaseItemDto[] {
-    const items = itemsStore();
+    if (this._state.queue.length > 0) {
+      const items = itemsStore();
 
-    return items.getItemsById(this._state.queue);
+      return items.getItemsById(this._state.queue);
+    }
+
+    return [];
   }
   /**
    * Get a reactive BaseItemDto object of the currently playing item
    */
   public get currentItem(): BaseItemDto | undefined {
-    const items = itemsStore();
-
     if (!isNil(this._state.currentItemIndex)) {
+      const items = itemsStore();
+
       return items.getItemById(this._state.queue[this._state.currentItemIndex]);
     }
   }
   public get currentSourceUrl(): string | undefined {
     return this._state.currentSourceUrl;
-  }
-  /**
-   * Get a reactive BaseItemDto object of the previous item in queue
-   */
-  public get previousItem(): BaseItemDto | undefined {
-    const items = itemsStore();
-
-    if (!isNil(this._state.lastItemIndex)) {
-      return items.getItemById(this._state.queue[this._state.lastItemIndex]);
-    }
   }
   /**
    * Get a reactive BaseItemDto object of the next item in queue
@@ -248,9 +242,9 @@ class PlaybackManagerStore {
    * Get the type of the currently playing item
    */
   public get currentlyPlayingType(): BaseItemKind | undefined {
-    const items = itemsStore();
-
     if (!isNil(this._state.currentItemIndex)) {
+      const items = itemsStore();
+
       return items.getItemById(this._state.queue[this._state.currentItemIndex])
         ?.Type;
     }
@@ -259,9 +253,9 @@ class PlaybackManagerStore {
    * Get the media type of the currently playing item
    */
   public get currentlyPlayingMediaType(): string | null | undefined {
-    const items = itemsStore();
-
     if (!isNil(this._state.currentItemIndex)) {
+      const items = itemsStore();
+
       return items.getItemById(this._state.queue[this._state.currentItemIndex])
         ?.MediaType;
     }
@@ -415,6 +409,16 @@ class PlaybackManagerStore {
     return this._state.repeatMode;
   }
 
+  /**
+   * In milliseconds
+   */
+  public get currentItemRuntime(): number {
+    return this.currentItem ? getItemRuntime(this.currentItem) : 0;
+  }
+
+  /**
+   * In milliseconds
+   */
   public get currentTime(): number {
     return this.isRemotePlayer
       ? this._state.remotePlaybackTime
@@ -433,7 +437,6 @@ class PlaybackManagerStore {
   }
   public set currentItemIndex(index: number | undefined) {
     if (this._state.currentItemIndex !== index) {
-      this._state.lastItemIndex = this._state.currentItemIndex;
       this._state.currentItemIndex = index;
       this.currentTime = 0;
     }
@@ -475,6 +478,7 @@ class PlaybackManagerStore {
 
   private get _pendingProgressReport(): boolean {
     return (
+      !this._isProgressUpdating &&
       reactiveDate.value.valueOf() - this._state.lastProgressUpdate >=
         progressReportInterval &&
       this.status !== PlaybackStatus.Stopped &&
@@ -486,147 +490,26 @@ class PlaybackManagerStore {
    * == ACTIONS ==
    */
   /**
-   * Add or remove media handlers
-   */
-  private _handleMediaSession = (remove = false): void => {
-    if (window.navigator.mediaSession) {
-      const actionHandlers: {
-        [key in MediaSessionAction]?: MediaSessionActionHandler;
-      } = {
-        play: (): void => {
-          this.unpause();
-        },
-        pause: (): void => {
-          this.pause();
-        },
-        previoustrack: (): void => {
-          this.setPreviousTrack();
-        },
-        nexttrack: (): void => {
-          this.setNextTrack();
-        },
-        stop: (): void => {
-          this.stop();
-        },
-        seekbackward: (): void => {
-          this.skipBackward();
-        },
-        seekforward: (): void => {
-          this.skipForward();
-        },
-        seekto: (action): void => {
-          this.currentTime = action.seekTime || 1;
-        }
-      };
-
-      for (const [action, handler] of Object.entries(actionHandlers)) {
-        try {
-          window.navigator.mediaSession.setActionHandler(
-            action as MediaSessionAction,
-            // eslint-disable-next-line unicorn/no-null
-            remove ? null : handler
-          );
-        } catch {
-          console.error(
-            `The media session action "${action}" is not supported.`
-          );
-        }
-      }
-
-      window.navigator.mediaSession.metadata = remove
-        ? // eslint-disable-next-line unicorn/no-null
-          null
-        : this._mediaMetadata;
-    }
-  };
-
-  /**
-   * Updates mediasession metadata based on the currently playing item
-   */
-  private _updateMediaSessionMetadata = (): void => {
-    this._mediaMetadata.title = this.currentItem?.Name ?? '';
-    this._mediaMetadata.artist = this.currentItem?.AlbumArtist ?? '';
-    this._mediaMetadata.album = this.currentItem?.Album ?? '';
-    this._mediaMetadata.artwork = this.currentItem
-      ? [
-          {
-            src:
-              getImageInfo(this.currentItem, {
-                width: 96
-              }).url || '',
-            sizes: '96x96'
-          },
-          {
-            src:
-              getImageInfo(this.currentItem, {
-                width: 128
-              }).url || '',
-            sizes: '128x128'
-          },
-          {
-            src:
-              getImageInfo(this.currentItem, {
-                width: 192
-              }).url || '',
-            sizes: '192x192'
-          },
-          {
-            src:
-              getImageInfo(this.currentItem, {
-                width: 256
-              }).url || '',
-            sizes: '256x256'
-          },
-          {
-            src:
-              getImageInfo(this.currentItem, {
-                width: 384
-              }).url || '',
-            sizes: '384x384'
-          },
-          {
-            src:
-              getImageInfo(this.currentItem, {
-                width: 512
-              }).url || '',
-            sizes: '512x512'
-          }
-        ]
-      : [];
-  };
-
-  /**
-   * Update MediaSession API status
-   */
-  private _updateMediaSessionStatus = (): void => {
-    if (window.navigator.mediaSession) {
-      switch (this.status) {
-        case PlaybackStatus.Playing: {
-          window.navigator.mediaSession.playbackState = 'playing';
-          break;
-        }
-        case PlaybackStatus.Paused: {
-          window.navigator.mediaSession.playbackState = 'paused';
-          break;
-        }
-      }
-    }
-  };
-  /**
    * Report current item playback progress to server
    */
   private _reportPlaybackProgress = async (): Promise<void> => {
-    if (!isNil(this.currentTime) && !isNil(this.currentItem)) {
-      await remote.sdk.newUserApi(getPlaystateApi).reportPlaybackProgress({
-        playbackProgressInfo: {
-          ItemId: this.currentItem.Id,
-          PlaySessionId: this._state.playSessionId,
-          IsPaused: this.isPaused,
-          PositionTicks: Math.round(msToTicks(this.currentTime * 1000))
-        }
-      });
+    this._isProgressUpdating = true;
 
-      this._state.lastProgressUpdate = Date.now();
+    try {
+      if (!isNil(this.currentTime) && !isNil(this.currentItem)) {
+        await remote.sdk.newUserApi(getPlaystateApi).reportPlaybackProgress({
+          playbackProgressInfo: {
+            ItemId: this.currentItem.Id,
+            PlaySessionId: this._state.playSessionId,
+            IsPaused: this.isPaused,
+            PositionTicks: Math.round(msToTicks(this.currentTime * 1000))
+          }
+        });
+
+        this._state.lastProgressUpdate = Date.now();
+      }
+    } finally {
+      this._isProgressUpdating = false;
     }
   };
 
@@ -639,16 +522,22 @@ class PlaybackManagerStore {
     currentTime = this.currentTime,
     updateState = true
   ): Promise<void> => {
-    await remote.sdk.newUserApi(getPlaystateApi).reportPlaybackStopped({
-      playbackStopInfo: {
-        ItemId: itemId,
-        PlaySessionId: sessionId,
-        PositionTicks: msToTicks((currentTime || 0) * 1000)
-      }
-    });
+    this._isProgressUpdating = true;
 
-    if (updateState) {
-      this._state.lastProgressUpdate = Date.now();
+    try {
+      await remote.sdk.newUserApi(getPlaystateApi).reportPlaybackStopped({
+        playbackStopInfo: {
+          ItemId: itemId,
+          PlaySessionId: sessionId,
+          PositionTicks: msToTicks((currentTime || 0) * 1000)
+        }
+      });
+
+      if (updateState) {
+        this._state.lastProgressUpdate = Date.now();
+      }
+    } finally {
+      this._isProgressUpdating = false;
     }
   };
 
@@ -656,19 +545,26 @@ class PlaybackManagerStore {
    * Report playback start to the server. Used by the "Now playing" statistics in other clients.
    */
   private _reportPlaybackStart = async (itemId: string): Promise<void> => {
-    await remote.sdk.newUserApi(getPlaystateApi).reportPlaybackStart({
-      playbackStartInfo: {
-        CanSeek: true,
-        ItemId: itemId,
-        PlaySessionId: this._state.playSessionId,
-        MediaSourceId: this._state.currentMediaSource?.Id,
-        AudioStreamIndex: this._state.currentAudioStreamIndex,
-        SubtitleStreamIndex: this._state.currentSubtitleStreamIndex
-      }
-    });
+    this._isProgressUpdating = true;
 
-    this._state.lastProgressUpdate = Date.now();
+    try {
+      await remote.sdk.newUserApi(getPlaystateApi).reportPlaybackStart({
+        playbackStartInfo: {
+          CanSeek: true,
+          ItemId: itemId,
+          PlaySessionId: this._state.playSessionId,
+          MediaSourceId: this._state.currentMediaSource?.Id,
+          AudioStreamIndex: this._state.currentAudioStreamIndex,
+          SubtitleStreamIndex: this._state.currentSubtitleStreamIndex
+        }
+      });
+
+      this._state.lastProgressUpdate = Date.now();
+    } finally {
+      this._isProgressUpdating = false;
+    }
   };
+
   public addToQueue = async (item: BaseItemDto): Promise<void> => {
     const translatedItem = await this.translateItemsForPlayback(item);
 
@@ -802,11 +698,9 @@ class PlaybackManagerStore {
       !isNil(this._state.currentItemIndex) &&
       this._state.currentItemIndex + 1 < this._state.queue.length
     ) {
-      this._state.lastItemIndex = this._state.currentItemIndex;
       this._state.currentItemIndex += 1;
       this.currentTime = 0;
     } else if (this._state.repeatMode === RepeatMode.RepeatAll) {
-      this._state.lastItemIndex = this._state.currentItemIndex;
       this._state.currentItemIndex = 0;
       this.currentTime = 0;
     } else {
@@ -821,7 +715,6 @@ class PlaybackManagerStore {
       !isNil(this.currentTime) &&
       this.currentTime < 2
     ) {
-      this._state.lastItemIndex = this._state.currentItemIndex;
       this._state.currentItemIndex -= 1;
     }
 
@@ -829,23 +722,17 @@ class PlaybackManagerStore {
   };
 
   public setNewQueue = (queue: string[]): void => {
-    let item;
-    let lastItem;
+    const item =
+      this._state.currentItemIndex === undefined
+        ? undefined
+        : this._state.queue[this._state.currentItemIndex];
 
-    if (this._state.currentItemIndex !== undefined) {
-      item = this._state.queue[this._state.currentItemIndex];
+    if (item) {
+      const newIndex = queue?.indexOf(item);
+
+      this._state.queue = queue;
+      this._state.currentItemIndex = newIndex;
     }
-
-    if (this._state.lastItemIndex !== undefined) {
-      lastItem = this._state.queue[this._state.lastItemIndex];
-    }
-
-    const newIndex = queue?.indexOf(item || '');
-    const lastItemNewIndex = queue?.indexOf(lastItem || '');
-
-    this._state.queue = queue;
-    this._state.lastItemIndex = lastItemNewIndex;
-    this._state.currentItemIndex = newIndex;
   };
 
   public changeItemPosition = (
@@ -895,7 +782,6 @@ class PlaybackManagerStore {
         this._state.currentItemIndex = this._state.originalQueue.indexOf(item);
         this._state.queue = this._state.originalQueue;
         this._state.originalQueue = [];
-        this._state.lastItemIndex = undefined;
         this._state.isShuffling = false;
       } else {
         const queue = shuffle(this._state.queue);
@@ -910,7 +796,6 @@ class PlaybackManagerStore {
 
         this._state.queue = queue;
         this._state.currentItemIndex = 0;
-        this._state.lastItemIndex = undefined;
         this._state.isShuffling = true;
       }
     }
@@ -990,37 +875,6 @@ class PlaybackManagerStore {
     }
   };
 
-  public getItemPlaybackUrl = (
-    mediaSource = this.currentMediaSource
-  ): string | undefined => {
-    if (
-      mediaSource?.SupportsDirectStream &&
-      mediaSource.Type &&
-      remote.auth.currentUserToken
-    ) {
-      const directOptions: Record<string, string> = {
-        Static: String(true),
-        mediaSourceId: String(mediaSource.Id),
-        deviceId: remote.sdk.deviceInfo.id,
-        api_key: remote.auth.currentUserToken,
-        Tag: mediaSource.ETag || '',
-        LiveStreamId: mediaSource.LiveStreamId || ''
-      };
-
-      const parameters = new URLSearchParams(directOptions).toString();
-
-      const mediaType = (mediaSource.MediaStreams ?? []).every(
-        (stream) => stream?.Type === 'Audio'
-      )
-        ? 'Audio'
-        : 'Videos';
-
-      return `${remote.sdk.api?.basePath}/${mediaType}/${mediaSource.Id}/stream.${mediaSource.Container}?${parameters}`;
-    } else if (mediaSource?.SupportsTranscoding && mediaSource.TranscodingUrl) {
-      return remote.sdk.api?.basePath + mediaSource.TranscodingUrl;
-    }
-  };
-
   /**
    * Builds an array of item ids based on a collection item (i.e album, tv show, etc...)
    *
@@ -1097,7 +951,48 @@ class PlaybackManagerStore {
     );
   };
 
-  public setCurrentMediaSource = async (): Promise<void> => {
+  public getItemPlaybackUrl = (
+    mediaSource = this.currentMediaSource,
+    mediaType = this.currentlyPlayingMediaType
+    
+  ): string | undefined => {
+    if (
+      mediaSource?.SupportsDirectStream &&
+      mediaSource.Type &&
+      remote.auth.currentUserToken
+    ) {
+      const directOptions: Record<string, string> = {
+        Static: String(true),
+        mediaSourceId: String(mediaSource.Id),
+        deviceId: remote.sdk.deviceInfo.id,
+        api_key: remote.auth.currentUserToken,
+        Tag: mediaSource.ETag || '',
+        LiveStreamId: mediaSource.LiveStreamId || ''
+      };
+
+      const parameters = new URLSearchParams(directOptions).toString();
+      const mediaType = (mediaSource.MediaStreams ?? []).every(
+        (stream: { Type: string; }) => stream?.Type === 'Audio'
+      )
+        ? 'Audio'
+        : 'Videos';
+
+      return `${remote.sdk.api?.basePath}/${mediaType}/${mediaSource.Id}/stream.${mediaSource.Container}?${parameters}`;
+    } else if (mediaSource?.SupportsTranscoding && mediaSource.TranscodingUrl) {
+      return remote.sdk.api?.basePath + mediaSource.TranscodingUrl;
+    }
+  };
+
+  private _setCurrentMediaSource = async (): Promise<void> => {
+    /**
+     * Generate an identifier that can be compared with the class' one.
+     * If they don't match, we assume the playing item has been changed while this function
+     * has been running. Hence, it's results are stale and another run will take effect instead.
+     */
+    const requestId = v4();
+
+    this._mediaSourceRequestId = requestId;
+    this._state.status = PlaybackStatus.Buffering;
     /**
      * Set values to undefined so the next item doesn't play the previous one while the requests are in progress
      */
@@ -1107,25 +1002,42 @@ class PlaybackManagerStore {
 
     const playbackInfo = await this.getItemPlaybackInfo();
 
-    if (playbackInfo) {
+    if (playbackInfo && requestId === this._mediaSourceRequestId) {
       const mediaSource = playbackInfo.MediaSources?.[0];
+      const playbackUrl = this.getItemPlaybackUrl(mediaSource);
 
-      if (mediaSource) {
-        this._state.playSessionId = playbackInfo?.PlaySessionId || '';
+      if (mediaSource && playbackInfo?.PlaySessionId && playbackUrl) {
+        this._state.playSessionId = playbackInfo.PlaySessionId;
         this._state.currentMediaSource = mediaSource;
-        this._state.currentSourceUrl = this.getItemPlaybackUrl();
+        this._state.currentSourceUrl = playbackUrl;
       } else {
         const { t } = usei18n();
 
+        this._state.status = PlaybackStatus.Error;
         useSnackbar(t('errors.cantPlayItem'), 'error');
       }
+
+      this._mediaSourceRequestId = undefined;
     }
   };
 
   public constructor() {
+    /**
+     * Logic is divided by concerns and scope. Watchers for callbacks
+     * that rely on the same variables might not be together. Categories:
+     * - Status
+     * - MediaSession
+     * - Server interaction: Setting media sources and playback reporting
+     * - Local media controls: Media element status changes performed outside this store.
+     *   For example: The browser itself might expose direct controls to the underlying HTMLMediaElement.
+     *   We want to keep track of these changes as well.
+     */
+    /**
+     * == Status ==
+     */
     watch(
       () => this.status,
-      async (newValue, oldValue) => {
+      () => {
         if (
           this.status === PlaybackStatus.Playing &&
           !mediaControls.playing.value
@@ -1137,93 +1049,261 @@ class PlaybackManagerStore {
         ) {
           mediaControls.playing.value = false;
         }
-
-        if (
-          newValue === PlaybackStatus.Stopped ||
-          newValue === PlaybackStatus.Error
-        ) {
-          this._handleMediaSession(true);
-        } else if (
-          oldValue === PlaybackStatus.Stopped ||
-          oldValue === PlaybackStatus.Error
-        ) {
-          this._handleMediaSession();
-        }
-
-        this._updateMediaSessionStatus();
-        await this._reportPlaybackProgress();
       }
     );
 
     /**
-     * Sets the current media source url and MediaSession metadata
+     * == MediaSession API: https://developer.mozilla.org/en-US/docs/Web/API/MediaSession ==
+     */
+    watchEffect(() => {
+      if (window.navigator.mediaSession) {
+        const { t } = usei18n();
+
+        window.navigator.mediaSession.metadata = this.currentItem
+          ? new MediaMetadata({
+              title: this.currentItem.Name ?? t('unknownTitle'),
+              artist: this.currentItem.AlbumArtist ?? t('unknownArtist'),
+              album: this.currentItem.Album ?? t('unknownAlbum'),
+              artwork: [
+                {
+                  src:
+                    getImageInfo(this.currentItem, {
+                      width: 96
+                    }).url || '',
+                  sizes: '96x96'
+                },
+                {
+                  src:
+                    getImageInfo(this.currentItem, {
+                      width: 128
+                    }).url || '',
+                  sizes: '128x128'
+                },
+                {
+                  src:
+                    getImageInfo(this.currentItem, {
+                      width: 192
+                    }).url || '',
+                  sizes: '192x192'
+                },
+                {
+                  src:
+                    getImageInfo(this.currentItem, {
+                      width: 256
+                    }).url || '',
+                  sizes: '256x256'
+                },
+                {
+                  src:
+                    getImageInfo(this.currentItem, {
+                      width: 384
+                    }).url || '',
+                  sizes: '384x384'
+                },
+                {
+                  src:
+                    getImageInfo(this.currentItem, {
+                      width: 512
+                    }).url || '',
+                  sizes: '512x512'
+                }
+              ]
+            })
+          : // eslint-disable-next-line unicorn/no-null
+            null;
+      }
+    });
+    watchEffect(() => {
+      if (window.navigator.mediaSession) {
+        switch (this.status) {
+          case PlaybackStatus.Playing: {
+            window.navigator.mediaSession.playbackState = 'playing';
+            break;
+          }
+          case PlaybackStatus.Paused:
+          case PlaybackStatus.Buffering: {
+            window.navigator.mediaSession.playbackState = 'paused';
+            break;
+          }
+          default: {
+            window.navigator.mediaSession.playbackState = 'none';
+          }
+        }
+      }
+    });
+    watch(
+      () => this.status,
+      (newValue, oldValue) => {
+        const remove =
+          newValue === PlaybackStatus.Error ||
+          newValue === PlaybackStatus.Stopped;
+        const add =
+          oldValue === PlaybackStatus.Error ||
+          oldValue === PlaybackStatus.Stopped;
+
+        if (window.navigator.mediaSession && (remove || add)) {
+          const actionHandlers: {
+            [key in MediaSessionAction]?: MediaSessionActionHandler;
+          } = {
+            play: (): void => {
+              this.unpause();
+            },
+            pause: (): void => {
+              this.pause();
+            },
+            previoustrack: (): void => {
+              this.setPreviousTrack();
+            },
+            nexttrack: (): void => {
+              this.setNextTrack();
+            },
+            stop: (): void => {
+              this.stop();
+            },
+            seekbackward: (): void => {
+              this.skipBackward();
+            },
+            seekforward: (): void => {
+              this.skipForward();
+            },
+            seekto: (action): void => {
+              this.currentTime = action.seekTime ?? 0;
+            }
+          };
+
+          for (const [action, handler] of Object.entries(actionHandlers)) {
+            try {
+              window.navigator.mediaSession.setActionHandler(
+                action as MediaSessionAction,
+                // eslint-disable-next-line unicorn/no-null
+                add ? handler : null
+              );
+            } catch {
+              console.error(
+                `The media session action "${action}" is not supported.`
+              );
+            }
+          }
+        }
+      }
+    );
+    watchEffect(() => {
+      const remove =
+        this.status === PlaybackStatus.Error ||
+        this.status === PlaybackStatus.Stopped;
+
+      if (
+        window.navigator.mediaSession &&
+        this.currentTime <= this.currentItemRuntime
+      ) {
+        window.navigator.mediaSession.setPositionState(
+          remove
+            ? undefined
+            : {
+                duration: this.currentItemRuntime / 1000,
+                // TODO: Change this when playback rate changes are implemented
+                playbackRate: 1,
+                position: this.currentTime
+              }
+        );
+      }
+    });
+
+    /**
+     * == Server interaction ==
+     */
+    /**
+     * Update media source, taking into account that currentItemIndex updates
+     * that occur when shuffling must be skipped
      */
     watch(
-      () => this.currentItemIndex,
-      async (newIndex) => {
-        this._updateMediaSessionMetadata();
-        await this.setCurrentMediaSource();
-
-        if (newIndex && !this._state.currentSourceUrl) {
-          const { t } = usei18n();
-
-          useSnackbar(t('errors.cantPlayItem'), 'error');
-          this.stop();
+      [
+        (): typeof this.currentItemIndex => this.currentItemIndex,
+        (): typeof this.isShuffling => this.isShuffling
+      ],
+      async (newValue, oldValue) => {
+        if (newValue[1] === oldValue[1]) {
+          await this._setCurrentMediaSource();
+        }
+      }
+    );
+    /**
+     * Report stop for the old item and start for the new one
+     */
+    watch(
+      () => this.currentItem?.Id,
+      async (newValue, oldValue) => {
+        if (oldValue) {
+          await this._reportPlaybackStopped(oldValue);
         }
 
-        if (this.previousItem?.Id) {
-          await this._reportPlaybackStopped(this.previousItem.Id);
+        if (newValue) {
+          await this._reportPlaybackStart(newValue);
         }
+      }
+    );
 
+    watchEffect(async () => {
+      if (
+        (this.currentSubtitleTrack?.DeliveryMethod ===
+          SubtitleDeliveryMethod.Encode &&
+          !isNil(this.currentSubtitleStreamIndex)) ||
+        !isNil(this.currentAudioStreamIndex)
+      ) {
         /**
-         * And then report play for the next one if it exists
+         * We need to set a new media source when:
+         * - Going from or to a situation where subs are burnt in.
+         * - The audio stream index changes
          */
-        if (!isNil(this.currentItem) && !isNil(this.currentItem.Id)) {
-          await this._reportPlaybackStart(this.currentItem.Id);
-        }
+        await this._setCurrentMediaSource();
       }
-    );
+    });
 
-    watch(
-      () => this.currentAudioStreamIndex,
-      async (newVal, oldVal) => {
-        if (oldVal !== undefined && newVal !== undefined && oldVal !== newVal) {
-          await this.setCurrentMediaSource();
-        }
+    watchEffect(async () => {
+      if (
+        this._pendingProgressReport &&
+        this.status !== PlaybackStatus.Buffering
+      ) {
+        await this._reportPlaybackProgress();
       }
-    );
+    });
+    /**
+     * Report playback stop when closing the tab
+     */
+    useEventListener('beforeunload', async () => {
+      if (this.currentItem?.Id) {
+        await this._reportPlaybackStopped(this.currentItem.Id);
+      }
+    });
 
-    watch(
-      () => ({
-        currentSubtitleStreamIndex: this.currentSubtitleStreamIndex,
-        currentSubtitleTrack: this.currentSubtitleTrack
-      }),
-      async (oldVal, newVal) => {
-        if (
-          oldVal.currentSubtitleStreamIndex !==
-            newVal.currentSubtitleStreamIndex &&
-          (oldVal.currentSubtitleTrack?.DeliveryMethod ===
-            SubtitleDeliveryMethod.Encode ||
-            newVal.currentSubtitleTrack?.DeliveryMethod ===
-              SubtitleDeliveryMethod.Encode)
-        ) {
-          /**
-           * This is the case when you go from or to a situation where subs are burnt in.
-           * In that case, we always need to fetch a new media source.
-           */
-          await this.setCurrentMediaSource();
-        }
-      }
-    );
+    /**
+     * == Local media controls ==
+     */
 
-    watch(
-      () => this._pendingProgressReport,
-      async () => {
-        if (this._pendingProgressReport) {
-          await this._reportPlaybackProgress();
-        }
+    watch(mediaControls.playing, () => {
+      if (
+        playbackManager.status !== PlaybackStatus.Buffering &&
+        !this.isRemotePlayer
+      ) {
+        this._state.status = mediaControls.playing.value
+          ? PlaybackStatus.Playing
+          : PlaybackStatus.Paused;
       }
-    );
+    });
+
+    watch(mediaControls.waiting, () => {
+      if (!this.isRemotePlayer) {
+        this._state.status = mediaControls.waiting.value
+          ? PlaybackStatus.Buffering
+          : PlaybackStatus.Playing;
+      }
+    });
+
+    watch(mediaControls.ended, () => {
+      if (mediaControls.ended.value && !this.isRemotePlayer) {
+        playbackManager.setNextTrack();
+      }
+    });
 
     /**
      * Dispose on logout
@@ -1236,26 +1316,6 @@ class PlaybackManagerStore {
         }
       }
     );
-
-    watch(mediaControls.playing, () => {
-      if (playbackManager.status !== PlaybackStatus.Buffering) {
-        this._state.status = mediaControls.playing.value
-          ? PlaybackStatus.Playing
-          : PlaybackStatus.Paused;
-      }
-    });
-
-    watch(mediaControls.waiting, () => {
-      this._state.status = mediaControls.waiting.value
-        ? PlaybackStatus.Buffering
-        : PlaybackStatus.Playing;
-    });
-
-    watch(mediaControls.ended, () => {
-      if (mediaControls.ended.value) {
-        playbackManager.setNextTrack();
-      }
-    });
   }
 }
 

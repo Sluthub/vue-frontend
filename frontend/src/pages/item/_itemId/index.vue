@@ -199,8 +199,13 @@
               class="text-subtitle-1 text-truncate">
               {{ item.Taglines[0] }}
             </p>
-            <!-- eslint-disable-next-line vue/no-v-html -->
-            <p v-if="overview" class="item-overview" v-html="overview" />
+            <!-- eslint-disable vue/no-v-html -
+              Output is properly sanitized using sanitizeHtml -->
+            <p
+              v-if="item.Overview"
+              class="item-overview"
+              v-html="sanitizeHtml(item.Overview, true)" />
+            <!-- eslint-enable vue/no-v-html -->
           </div>
         </v-col>
       </v-row>

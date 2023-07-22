@@ -66,10 +66,7 @@ const dfnsExports = localeFiles
 
 export default defineConfig(({ mode }): UserConfig => {
   const config: UserConfig = {
-    server: {
-      host: '0.0.0.0',
-      port: 3000
-    },
+    appType: 'spa',
     define: {
       __COMMIT_HASH__: JSON.stringify(process.env.COMMIT_HASH || '')
     },
@@ -120,7 +117,11 @@ export default defineConfig(({ mode }): UserConfig => {
                 .replace('_', '');
         }
       }),
-      vue(),
+      vue({
+        script: {
+          defineModel: true
+        }
+      }),
       Layouts({
         importMode: () => 'sync',
         defaultLayout: 'default'
@@ -159,17 +160,11 @@ export default defineConfig(({ mode }): UserConfig => {
        * See main.ts for an explanation of this target
        */
       target: 'es2022',
+      cssCodeSplit: false,
       modulePreload: false,
       reportCompressedSize: false,
       rollupOptions: {
         output: {
-          assetFileNames: (assetInfo) => {
-            if (assetInfo.name?.endsWith('jassub-worker.wasm')) {
-              return 'assets/jassub-worker.wasm';
-            }
-
-            return 'assets/[name]-[hash][extname]';
-          },
           plugins: [
             mode === 'analyze'
               ? // rollup-plugin-visualizer
@@ -196,6 +191,10 @@ export default defineConfig(({ mode }): UserConfig => {
       host: '0.0.0.0',
       cors: true
     },
+    server: {
+      host: '0.0.0.0',
+      port: 3000
+    },
     resolve: {
       alias: {
         '@/': `${path.resolve(
@@ -203,6 +202,9 @@ export default defineConfig(({ mode }): UserConfig => {
           './src'
         )}/`
       }
+    },
+    worker: {
+      format: 'es'
     }
   };
 

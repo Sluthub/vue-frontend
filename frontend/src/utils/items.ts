@@ -31,6 +31,7 @@ import IMdiBookmarkBoxMultiple from 'virtual:icons/mdi/bookmark-box-multiple';
 import { getItemsApi } from '@jellyfin/sdk/lib/utils/api/items-api';
 import { getTvShowsApi } from '@jellyfin/sdk/lib/utils/api/tv-shows-api';
 import { DownloadableFile } from './file-download';
+import { ticksToMs } from './time';
 import { useRemote } from '@/composables';
 
 /**
@@ -446,6 +447,13 @@ export function getItemIcon(
   }
 
   return itemIcon;
+}
+
+/**
+ * Get the runtime of an item in milliseconds
+ */
+export function getItemRuntime(item: BaseItemDto): number {
+  return ticksToMs(item.RunTimeTicks);
 }
 
 /**

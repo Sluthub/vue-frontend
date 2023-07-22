@@ -85,7 +85,6 @@ import {
   RemoteSearchResult
 } from '@jellyfin/sdk/lib/generated-client';
 import { getItemLookupApi } from '@jellyfin/sdk/lib/utils/api/item-lookup-api';
-import { cloneDeep } from 'lodash-es';
 import { computed, ref, toRaw } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useConfirmDialog, useRemote, useSnackbar } from '@/composables';
@@ -100,7 +99,7 @@ interface IdentifyField {
 const props = defineProps<{ item: BaseItemDto; mediaSourceIndex?: number }>();
 
 const emit = defineEmits<{
-  (e: 'close'): void;
+  close: [];
 }>();
 
 const wrapClose = (): void => {
@@ -175,7 +174,9 @@ const searchFields = computed<IdentifyField[]>(() => {
 
   return result;
 });
-const fieldsInputs = ref<IdentifyField[]>(cloneDeep(toRaw(searchFields.value)));
+const fieldsInputs = ref<IdentifyField[]>(
+  structuredClone(toRaw(searchFields.value))
+);
 const tabName = computed(() =>
   searchResults.value === undefined ? 'searchMenu' : 'resultsMenu'
 );

@@ -10,7 +10,6 @@ import {
   ItemFields,
   BaseItemKind
 } from '@jellyfin/sdk/lib/generated-client';
-import { cloneDeep } from 'lodash-es';
 import { CardShapes } from '@/utils/items';
 import { usei18n, useRemote, useSnackbar } from '@/composables';
 import { mergeExcludingUnknown } from '@/utils/data-manipulation';
@@ -70,7 +69,7 @@ class UserLibrariesStore {
 
   private _state: RemovableRef<UserLibrariesState> = useStorage(
     storeKey,
-    cloneDeep(this._defaultState),
+    structuredClone(this._defaultState),
     sessionStorage,
     {
       mergeDefaults: (storageValue, defaults) =>
