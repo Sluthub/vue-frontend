@@ -1,73 +1,80 @@
 <template>
   <div :class="{ 'card-margin': margin }">
-    <component
+    <Component
       :is="link ? 'router-link' : 'div'"
       :to="link ? getItemDetailsLink(item) : null"
       :class="{ 'card-box': link }">
-      <!-- CARD -->
-      <div :class="shape || cardType" class="elevation-2">
+      <div
+        :class="shape || cardType"
+        class="elevation-2">
         <div
-          class="card-content card-content-button d-flex justify-center align-center darken-4">
-          <blurhash-image
+          class="absolute-cover card-content d-flex justify-center align-center">
+          <BlurhashImage
             :item="item"
             :type="getImageType"
             :alt="item.Name || ''"
             class="card-image" />
-          <v-progress-circular
-            v-if="refreshProgress !== undefined"
-            class="card-chip"
-            :model-value="refreshProgress"
-            :indeterminate="refreshProgress === 0"
-            color="white"
-            size="24" />
-          <watched-indicator v-if="item.UserData && item.UserData.Played" />
-          <v-chip
-            v-if="item.UserData && item.UserData.UnplayedItemCount"
-            color="primary"
-            variant="elevated"
-            class="card-chip"
-            size="small">
-            {{ item.UserData.UnplayedItemCount }}
-          </v-chip>
-          <v-progress-linear
+        </div>
+        <div
+          class="absolute-cover card-overlay d-flex justify-center align-center"
+          :class="{ 'card-overlay-hover': overlay && isFinePointer }">
+          <div class="card-upper-content d-flex justify-center align-center">
+            <VProgressCircular
+              v-if="refreshProgress !== undefined"
+              :model-value="refreshProgress"
+              :indeterminate="refreshProgress === 0"
+              size="24" />
+            <WatchedIndicator v-if="item.UserData && item.UserData.Played" />
+            <VChip
+              v-if="item.UserData && item.UserData.UnplayedItemCount"
+              color="primary"
+              variant="elevated"
+              size="small">
+              {{ item.UserData.UnplayedItemCount }}
+            </VChip>
+          </div>
+          <div class="card-overlay-hover-hidden">
+            <PlayButton
+              fab
+              :item="item" />
+            <div class="card-lower-content d-flex justify-center align-center">
+              <MarkPlayedButton :item="item" />
+              <LikeButton
+                v-if="canPlay(item)"
+                :item="item" />
+              <ItemMenu :item="item" />
+            </div>
+          </div>
+          <VProgressLinear
             v-if="
               item.UserData &&
-              item.UserData.PlayedPercentage &&
-              item.UserData.PlayedPercentage > 0
+                item.UserData.PlayedPercentage &&
+                item.UserData.PlayedPercentage > 0
             "
             v-model="progress"
-            color="primary-accent-4"
             absolute
             location="bottom" />
         </div>
-        <div
-          v-if="overlay && isFinePointer"
-          class="card-overlay d-flex justify-center align-center">
-          <play-button fab :item="item" />
-          <div
-            v-if="overlay"
-            class="card-lower-buttons d-flex justify-center align-center">
-            <mark-played-button :item="item" />
-            <like-button v-if="canPlay(item)" :item="item" />
-            <item-menu :item="item" />
-          </div>
-        </div>
       </div>
-    </component>
-    <div v-if="text" class="card-text">
-      <router-link
+    </Component>
+    <div
+      v-if="text"
+      class="card-text">
+      <RouterLink
         class="link d-block font-weight-medium pa-0 mt-1 text-truncate"
         :to="cardTitleLink">
         {{ cardTitle }}
-      </router-link>
-      <router-link
+      </RouterLink>
+      <RouterLink
         v-if="cardSubtitleLink"
         class="link d-block v-card-subtitle text-truncate"
         :to="cardSubtitleLink">
-        {{ cardSubtitle }}
-      </router-link>
-      <div v-else class="v-card-subtitle text-truncate">
-        {{ cardSubtitle }}
+        {{ cardSubtitle ?? '' }}
+      </RouterLink>
+      <div
+        v-else
+        class="v-card-subtitle text-truncate">
+        {{ cardSubtitle ?? '' }}
       </div>
     </div>
   </div>
@@ -75,6 +82,7 @@
 
 <script lang="ts">
 import { computed } from 'vue';
+import { isNil } from 'lodash-es';
 import { useMediaQuery } from '@vueuse/core';
 import {
   BaseItemDto,
@@ -136,37 +144,35 @@ const cardTitle = computed(() =>
 const cardSubtitle = computed(() => {
   switch (props.item.Type) {
     case BaseItemKind.Episode: {
-      return `${t('seasonEpisodeAbbrev', {
+      return !isNil(props.item.ParentIndexNumber) && !isNil(props.item.IndexNumber) && !isNil(props.item.Name) ? `${t('seasonEpisodeAbbrev', {
         seasonNumber: props.item.ParentIndexNumber,
         episodeNumber: props.item.IndexNumber
-      })} - ${props.item.Name}`;
+      })} - ${props.item.Name}` : undefined;
     }
     case BaseItemKind.MusicAlbum: {
-      return `${props.item.AlbumArtist || ''}`;
+      return props.item.AlbumArtist;
     }
     case BaseItemKind.Series: {
-      if (props.item.Status === 'Continuing') {
+      if (props.item.Status === 'Continuing' && !isNil(props.item.ProductionYear)) {
         return `${props.item.ProductionYear} - ${t('present')}`;
       } else if (props.item.EndDate) {
         const endYear = new Date(props.item?.EndDate).toLocaleString('en-us', {
           year: 'numeric'
         });
 
-        if (props.item.ProductionYear?.toString() === endYear) {
-          return props.item.ProductionYear.toString();
+        if (String(props.item.ProductionYear) === endYear) {
+          return String(props.item.ProductionYear);
         }
 
-        return `${props.item.ProductionYear} - ${endYear}`;
+        return isNil(props.item.ProductionYear) ? undefined: `${props.item.ProductionYear} - ${endYear}`;
       }
 
       break;
     }
     default: {
-      return `${props.item.ProductionYear || ''}`;
+      return props.item.ProductionYear;
     }
   }
-
-  return '';
 });
 
 /**
@@ -244,7 +250,13 @@ const refreshProgress = computed(
 </style>
 
 <style lang="scss" scoped>
-.card-lower-buttons {
+.card-upper-content {
+  position: absolute;
+  right: 0.5em;
+  top: 0.5em;
+  gap: 0.3em;
+}
+.card-lower-content {
   position: absolute;
   right: 0.5em;
   bottom: 0.5em;
@@ -258,14 +270,7 @@ const refreshProgress = computed(
 .card-content {
   background-color: rgb(var(--v-theme-menu));
   overflow: hidden;
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
   margin: 0 !important;
-  height: 100%;
-  width: 100%;
   contain: strict;
   background-size: cover;
   background-repeat: no-repeat;
@@ -275,22 +280,23 @@ const refreshProgress = computed(
 }
 
 .card-overlay {
-  position: absolute;
-  background: radial-gradient(
-    farthest-corner at 50% 50%,
-    rgba(0, 0, 0, 0.5) 50%,
-    rgba(0, 0, 0, 0.7) 100%
-  );
+  transition: all 0.2s;
+}
+
+.overlay-hover {
   transition: opacity 0.2s;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+}
+
+.card-overlay-hover-hidden {
+  transition: inherit;
   opacity: 0;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .card-box:hover .card-overlay {
+  .card-box:hover .card-overlay-hover {
+    background: rgba(var(--v-theme-background), 0.5);
+  }
+  .card-box:hover .card-overlay-hover .card-overlay-hover-hidden {
     opacity: 1;
   }
 }
@@ -303,8 +309,9 @@ const refreshProgress = computed(
   text-overflow: ellipsis;
 }
 
-.a {
+a.card-box {
   text-decoration: none;
+  color: unset;
 }
 
 .absolute {

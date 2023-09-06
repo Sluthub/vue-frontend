@@ -1,7 +1,7 @@
 <template>
-  <v-btn
+  <VBtn
     v-if="canMarkWatched(item)"
-    :color="isPlayed ? 'primary' : ''"
+    :color="isPlayed ? 'primary' : undefined"
     :icon="IMdiCheck"
     size="small"
     @click.stop.prevent="togglePlayed" />
@@ -37,13 +37,13 @@ async function togglePlayed(): Promise<void> {
     if (isPlayed.value) {
       isPlayed.value = false;
       await remote.sdk.newUserApi(getPlaystateApi).markUnplayedItem({
-        userId: remote.auth.currentUserId || '',
+        userId: remote.auth.currentUserId ?? '',
         itemId: props.item.Id
       });
     } else {
       isPlayed.value = true;
       await remote.sdk.newUserApi(getPlaystateApi).markPlayedItem({
-        userId: remote.auth.currentUserId || '',
+        userId: remote.auth.currentUserId ?? '',
         itemId: props.item.Id
       });
     }

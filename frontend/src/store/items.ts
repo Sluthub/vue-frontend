@@ -1,5 +1,4 @@
 import { reactive, watch } from 'vue';
-import { cloneDeep } from 'lodash-es';
 import { BaseItemDto, ItemFields } from '@jellyfin/sdk/lib/generated-client';
 import { getItemsApi } from '@jellyfin/sdk/lib/utils/api/items-api';
 import { useRemote } from '@/composables';
@@ -17,14 +16,14 @@ interface ItemsState {
  */
 class ItemsStore {
   /**
-   * == STATE ==
+   * == STATE SECTION ==
    */
   private _defaultState: ItemsState = {
     byId: {},
     collectionById: {}
   };
 
-  private _state = reactive<ItemsState>(cloneDeep(this._defaultState));
+  private _state = reactive<ItemsState>(structuredClone(this._defaultState));
   /**
    * == GETTERS AND SETTERS ==
    */

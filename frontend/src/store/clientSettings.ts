@@ -6,7 +6,6 @@ import {
   useStorage,
   watchPausable
 } from '@vueuse/core';
-import { cloneDeep } from 'lodash-es';
 import { fetchDefaultedCustomPrefs, syncCustomPrefs } from '@/utils/store-sync';
 import { usei18n, useSnackbar, useRemote, useVuetify } from '@/composables';
 import { mergeExcludingUnknown } from '@/utils/data-manipulation';
@@ -18,7 +17,7 @@ import { mergeExcludingUnknown } from '@/utils/data-manipulation';
 
 interface ClientSettingsState {
   darkMode: 'auto' | boolean;
-  locale: 'auto' | string;
+  locale: string;
 }
 
 /**
@@ -26,7 +25,7 @@ interface ClientSettingsState {
  */
 const navigatorLanguage = useNavigatorLanguage();
 const BROWSER_LANGUAGE = computed<string>(() => {
-  const rawString = navigatorLanguage.language.value || '';
+  const rawString = navigatorLanguage.language.value ?? '';
   /**
    * Removes the culture info from the language string, so 'es-ES' is recognised as 'es'
    */
@@ -42,7 +41,7 @@ const storeKey = 'clientSettings';
  */
 class ClientSettingsStore {
   /**
-   * == STATE ==
+   * == STATE SECTION ==
    */
   private _defaultState: ClientSettingsState = {
     darkMode: 'auto',
@@ -51,7 +50,7 @@ class ClientSettingsStore {
 
   private _state: RemovableRef<ClientSettingsState> = useStorage(
     storeKey,
-    cloneDeep(this._defaultState),
+    structuredClone(this._defaultState),
     localStorage,
     {
       mergeDefaults: (storageValue, defaults) =>
@@ -65,12 +64,9 @@ class ClientSettingsStore {
   public set locale(newVal: string) {
     const i18n = usei18n();
 
-    if (!i18n.availableLocales.includes(newVal) && newVal !== 'auto') {
-      throw new TypeError('This locale has not been registered');
-    }
-
     this._state.value.locale =
-      newVal === 'auto' ? String(i18n.fallbackLocale.value) : newVal;
+      i18n.availableLocales.includes(newVal) && newVal !== 'auto'
+        ? newVal : 'auto';
   }
 
   public get locale(): string {
@@ -87,11 +83,13 @@ class ClientSettingsStore {
 
   private _updateLocale = (): void => {
     const i18n = usei18n();
+    const vuetify = useVuetify();
 
     i18n.locale.value =
       this.locale === 'auto'
         ? BROWSER_LANGUAGE.value || String(i18n.fallbackLocale.value)
         : this.locale;
+    vuetify.locale.current.value = i18n.locale.value;
   };
 
   private _updateTheme = (): void => {

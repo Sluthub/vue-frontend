@@ -1,17 +1,22 @@
 <template>
-  <router-view v-slot="{ Component, route }">
-    <transition
+  <RouterView v-slot="{ Component, route }">
+    <Transition
       :name="!prefersNoMotion ? getTransitionName(route) : undefined"
-      mode="out-in"
-      @before-enter="beforeTransition">
+      mode="out-in">
       <!-- This div is required because <transition> requires a single children node -->
-      <div :key="isRoot ? route.meta.layout : String(route.path)" class="h-100">
-        <Suspense @pending="useLoading().start" @resolve="useLoading().finish">
-          <component :is="Component" />
+      <div
+        :key="isRoot ? route.meta.layout : String(route.path)"
+        style="transform-origin: center"
+        class="h-100">
+        <Suspense
+          :suspensible="!isRoot"
+          @pending="isRoot ? useLoading().start : undefined"
+          @resolve="isRoot ? useLoading().finish : undefined">
+          <Component :is="Component" />
         </Suspense>
       </div>
-    </transition>
-  </router-view>
+    </Transition>
+  </RouterView>
 </template>
 
 <script lang="ts">
@@ -34,7 +39,7 @@ defineProps<{
 }>();
 
 /**
- * Get transition name
+ * Based on a route's meta.transition properties, return the transition name to use
  */
 function getTransitionName(
   route: RouteLocationNormalizedLoaded
@@ -44,14 +49,5 @@ function getTransitionName(
   }
 
   return 'scroll-x-reverse-transition';
-}
-
-/**
- * Sets the transition origin to the center of the page
- */
-function beforeTransition(el: Element): void {
-  if (el instanceof HTMLElement) {
-    el.style.transformOrigin = 'center center';
-  }
 }
 </script>

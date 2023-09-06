@@ -1,7 +1,10 @@
 <template>
   <div>
-    <v-form v-model="valid" :disabled="loading" @submit.prevent="userLogin">
-      <v-text-field
+    <VForm
+      v-model="valid"
+      :disabled="loading"
+      @submit.prevent="userLogin">
+      <VTextField
         v-if="isEmpty(user)"
         v-model="login.username"
         variant="outlined"
@@ -9,7 +12,7 @@
         autofocus
         :label="$t('username')"
         :rules="rules" />
-      <v-text-field
+      <VTextField
         v-model="login.password"
         variant="outlined"
         hide-details
@@ -18,15 +21,17 @@
         :append-inner-icon="showPassword ? IconEyeOff : IconEye"
         :type="showPassword ? 'text' : 'password'"
         @click:append="() => (showPassword = !showPassword)" />
-      <v-checkbox
+      <VCheckbox
         v-model="login.rememberMe"
         hide-details
         class="mt-6 mb-6"
         color="primary"
         :label="$t('login.rememberMe')" />
-      <v-row align="center" no-gutters>
-        <v-col class="mr-2">
-          <v-btn
+      <VRow
+        align="center"
+        no-gutters>
+        <VCol class="mr-2">
+          <VBtn
             :disabled="!valid"
             :loading="loading"
             block
@@ -35,10 +40,10 @@
             variant="elevated"
             type="submit">
             {{ $t('signIn') }}
-          </v-btn>
-        </v-col>
-      </v-row>
-    </v-form>
+          </VBtn>
+        </VCol>
+      </VRow>
+    </VForm>
   </div>
 </template>
 
@@ -53,14 +58,14 @@ import IconEye from 'virtual:icons/mdi/eye';
 import { useRemote } from '@/composables';
 import { userLibrariesStore } from '@/store';
 
-const remote = useRemote();
-const { t } = useI18n();
-
 const props = defineProps<{ user: UserDto }>();
 
 defineEmits<{
-  (e: 'change'): void;
+  change: [];
 }>();
+
+const remote = useRemote();
+const { t } = useI18n();
 
 const router = useRouter();
 const userLibraries = userLibrariesStore();

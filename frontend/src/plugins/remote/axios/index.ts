@@ -53,10 +53,12 @@ class JellyfinInterceptors {
 
     if (data) {
       if (data.Items && Array.isArray(data.Items)) {
-        // TODO: Implement a proper check for reponses that are BaseItemDto.
-        // This currently will try to cache the values for all response types.
-        // The likelyhood of an id cache collision is low but this is caching a lot
-        // in memory currently.
+        /*
+         * TODO: Implement a proper check for reponses that are BaseItemDto.
+         * This currently will try to cache the values for all response types.
+         * The likelyhood of an id cache collision is low but this is caching a lot
+         * in memory currently.
+         */
         response.data.Items = (data.Items as BaseItemDto[]).map((i) =>
           items.add(i)
         );
@@ -75,7 +77,7 @@ class JellyfinInterceptors {
    * Intercepts 401 (Unathorized) error code and logs out the user inmmediately,
    * as the session probably has been revoked remotely.
    */
-  public async logoutInterceptor(error: AxiosError): Promise<never | void> {
+  public async logoutInterceptor(error: AxiosError): Promise<void> {
     if (
       error.response?.status === 401 &&
       remote.currentUser &&
@@ -93,7 +95,7 @@ class JellyfinInterceptors {
 
   public async serverUnreachableInterceptor(
     error: AxiosError
-  ): Promise<never | void> {
+  ): Promise<void> {
     if (error.code === 'ERR_NETWORK') {
       await remote.logoutCurrentUser(true);
       useSnackbar(usei18n().t('login.serverNotFound'), 'error');

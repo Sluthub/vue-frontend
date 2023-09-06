@@ -9,6 +9,7 @@ import {
   MediaStream
 } from '@jellyfin/sdk/lib/generated-client';
 import { useRouter } from 'vue-router';
+import { isNil } from 'lodash-es';
 import type { RouteNamedMap } from 'vue-router/auto/routes';
 import IMdiMovie from 'virtual:icons/mdi/movie';
 import IMdiMusic from 'virtual:icons/mdi/music';
@@ -30,7 +31,7 @@ import IMdiAlbum from 'virtual:icons/mdi/album';
 import IMdiBookmarkBoxMultiple from 'virtual:icons/mdi/bookmark-box-multiple';
 import { getItemsApi } from '@jellyfin/sdk/lib/utils/api/items-api';
 import { getTvShowsApi } from '@jellyfin/sdk/lib/utils/api/tv-shows-api';
-import { DownloadableFile } from './file-download';
+import { ticksToMs } from './time';
 import { useRemote } from '@/composables';
 
 /**
@@ -97,7 +98,6 @@ export function isLibrary(item: BaseItemDto): boolean {
 /**
  * Get the Material Design Icon name associated with a type of library
  *
- * @param libraryType - Type of the library
  * @returns Name of the Material Design Icon associated with the type
  */
 export function getLibraryIcon(
@@ -146,7 +146,6 @@ export function getLibraryIcon(
 /**
  * Get the card shape associated with a collection type
  *
- * @param collectionType - Type of the collection
  * @returns CSS class to use as the shape of the card
  */
 export function getShapeFromCollectionType(
@@ -171,7 +170,6 @@ export function getShapeFromCollectionType(
 /**
  * Gets the card shape associated with a collection type
  *
- * @param itemType - type of item
  * @returns CSS class to use as the shape of the card
  */
 export function getShapeFromItemType(
@@ -261,10 +259,7 @@ export function canPlay(item: BaseItemDto | undefined): boolean {
  * Check if an item can be resumed
  */
 export function canResume(item: BaseItemDto): boolean {
-  return item?.UserData?.PlaybackPositionTicks &&
-    item.UserData.PlaybackPositionTicks > 0
-    ? true
-    : false;
+  return Boolean(item?.UserData?.PlaybackPositionTicks && item.UserData.PlaybackPositionTicks > 0);
 }
 /**
  * Determine if an item can be mark as played
@@ -449,6 +444,13 @@ export function getItemIcon(
 }
 
 /**
+ * Get the runtime of an item in milliseconds
+ */
+export function getItemRuntime(item: BaseItemDto): number {
+  return ticksToMs(item.RunTimeTicks);
+}
+
+/**
  * Filters the media streams based on the wanted type
  *
  * @param mediaStreams - Media streams to filter among
@@ -463,16 +465,31 @@ export function getMediaStreams(
 }
 
 /**
+ * Get the item ID either from the item itself or from the MediaSource
+ *
+ * @param item - The item to get the ID from
+ * @param sourceIndex - The index of the MediaSource to get the ID from (optional)
+ * @returns The ID of the item or the MediaSource
+ */
+export function getItemIdFromSourceIndex(
+  item: BaseItemDto,
+  sourceIndex?: number
+): string {
+  if (sourceIndex === undefined) {
+    return item.Id ?? '';
+  }
+
+  const mediaSource = item.MediaSources?.[sourceIndex];
+
+  return (mediaSource ? mediaSource.Id : item.Id) ?? '';
+}
+
+/**
  * Create an item download object that contains the URL and filename.
  *
- * @param itemId - The item ID.
- * @param itemPath - The item path.
  * @returns - A download object.
  */
-export function getItemDownloadObject(
-  itemId: string,
-  itemPath?: string
-): DownloadableFile | undefined {
+export function getItemDownloadUrl(itemId: string): string | undefined {
   const remote = useRemote();
 
   const serverAddress = remote.sdk.api?.basePath;
@@ -482,83 +499,70 @@ export function getItemDownloadObject(
     return undefined;
   }
 
-  const fileName = itemPath?.includes('\\')
-    ? itemPath?.split('\\').pop()
-    : itemPath?.split('/').pop();
-
-  return {
-    url: `${serverAddress}/Items/${itemId}/Download?api_key=${userToken}`,
-    fileName: fileName ?? ''
-  };
+  return `${serverAddress}/Items/${itemId}/Download?api_key=${userToken}`;
 }
 
 /**
- * Get multiple download object for seasons.
+ * Get a map of an episode name and its download url, given a season.
  *
- * @param seasonId - The season ID.
- * @returns - An array of download objects.
+ * @returns - A map: [EpisodeName, DownloadUrl].
  */
-export async function getItemSeasonDownloadObjects(
+export async function getItemSeasonDownloadMap(
   seasonId: string
-): Promise<DownloadableFile[]> {
+): Promise<Map<string, string>> {
   const remote = useRemote();
+  const result = new Map<string, string>();
 
-  if (remote.sdk.api === undefined) {
-    return [];
+  const episodes =
+    (
+      await remote.sdk.newUserApi(getItemsApi).getItems({
+        userId: remote.auth.currentUserId,
+        parentId: seasonId,
+        fields: [ItemFields.Overview, ItemFields.CanDownload, ItemFields.Path]
+      })
+    ).data.Items ?? [];
+
+  for (const episode of episodes) {
+    if (episode.Id && !isNil(episode.Name)) {
+      const url = getItemDownloadUrl(episode.Id);
+
+      if (url) {
+        result.set(episode.Name, url);
+      }
+    }
   }
 
-  const episodes = (
-    await remote.sdk.newUserApi(getItemsApi).getItems({
-      userId: remote.auth.currentUserId,
-      parentId: seasonId,
-      fields: [ItemFields.Overview, ItemFields.CanDownload, ItemFields.Path]
-    })
-  ).data;
-
-  return (
-    episodes.Items?.map((r) => {
-      if (r.Id && r.Path) {
-        return getItemDownloadObject(r.Id, r.Path);
-      }
-    }).filter(
-      (r): r is DownloadableFile =>
-        r !== undefined && r.url.length > 0 && r.fileName.length > 0
-    ) ?? []
-  );
+  return result;
 }
 
 /**
- * Get download object for a series.
- * This will fetch every season for all the episodes.
+ * Get a map of an episode name and its download url, given a series.
  *
- * @param seriesId - The series ID.
- * @returns - An array of download objects.
+ * @returns - A map: [EpisodeName, DownloadUrl].
  */
-export async function getItemSeriesDownloadObjects(
+export async function getItemSeriesDownloadMap(
   seriesId: string
-): Promise<DownloadableFile[]> {
+): Promise<Map<string, string>> {
   const remote = useRemote();
+  let result = new Map<string, string>();
 
-  let mergedStreamURLs: DownloadableFile[] = [];
+  const seasons =
+    (
+      await remote.sdk.newUserApi(getTvShowsApi).getSeasons({
+        userId: remote.auth.currentUserId,
+        seriesId: seriesId
+      })
+    ).data.Items ?? [];
 
-  if (remote.sdk.api === undefined) {
-    return [];
+  for (const season of seasons) {
+    if (season.Id) {
+      const map = await getItemSeasonDownloadMap(season.Id);
+
+      result = new Map([...result, ...map]);
+    }
   }
 
-  const seasons = (
-    await remote.sdk.newUserApi(getTvShowsApi).getSeasons({
-      userId: remote.auth.currentUserId,
-      seriesId: seriesId
-    })
-  ).data;
-
-  for (const season of seasons.Items || []) {
-    const seasonURLs = await getItemSeasonDownloadObjects(season.Id || '');
-
-    mergedStreamURLs = [...mergedStreamURLs, ...seasonURLs];
-  }
-
-  return mergedStreamURLs;
+  return result;
 }
 
 /**
@@ -577,4 +581,12 @@ export function formatFileSize(size: number): string {
   return `${(size / Math.pow(1024, i)).toFixed(2)} ${
     ['B', 'kiB', 'MiB', 'GiB', 'TiB', 'PiB'][i]
   }`;
+}
+
+/**
+ * Format an item's bitrate into an standard human-readable format
+ * Eg: 18112.27 kbps
+ */
+export function formatBitRate(bitrate: number): string {
+  return `${(bitrate / 1000).toFixed(2)} kbps`;
 }

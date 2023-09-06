@@ -10,7 +10,6 @@ import {
   ItemFields,
   BaseItemKind
 } from '@jellyfin/sdk/lib/generated-client';
-import { cloneDeep } from 'lodash-es';
 import { CardShapes } from '@/utils/items';
 import { usei18n, useRemote, useSnackbar } from '@/composables';
 import { mergeExcludingUnknown } from '@/utils/data-manipulation';
@@ -54,7 +53,7 @@ const storeKey = 'userLibraries';
  */
 class UserLibrariesStore {
   /**
-   * == STATE ==
+   * == STATE SECTION ==
    */
   private _defaultState: UserLibrariesState = {
     views: [],
@@ -70,7 +69,7 @@ class UserLibrariesStore {
 
   private _state: RemovableRef<UserLibrariesState> = useStorage(
     storeKey,
-    cloneDeep(this._defaultState),
+    structuredClone(this._defaultState),
     sessionStorage,
     {
       mergeDefaults: (storageValue, defaults) =>
@@ -132,7 +131,7 @@ class UserLibrariesStore {
       const userViewsResponse = await remote.sdk
         .newUserApi(getUserViewsApi)
         .getUserViews({
-          userId: remote.auth.currentUserId || ''
+          userId: remote.auth.currentUserId ?? ''
         });
 
       this._state.value.views = userViewsResponse.data.Items ?? [];
@@ -147,13 +146,10 @@ class UserLibrariesStore {
     try {
       const audioResumes = (
         await remote.sdk.newUserApi(getItemsApi).getResumeItems({
-          userId: remote.auth.currentUserId || '',
-          limit: 24,
+          userId: remote.auth.currentUserId ?? '',
           fields: [
             ItemFields.PrimaryImageAspectRatio,
             ItemFields.MediaSources,
-            ItemFields.CanDelete,
-            ItemFields.CanDownload,
             ItemFields.ProviderIds
           ],
           imageTypeLimit: 1,
@@ -179,13 +175,10 @@ class UserLibrariesStore {
     try {
       const videoResumes = (
         await remote.sdk.newUserApi(getItemsApi).getResumeItems({
-          userId: remote.auth.currentUserId || '',
-          limit: 24,
+          userId: remote.auth.currentUserId ?? '',
           fields: [
             ItemFields.PrimaryImageAspectRatio,
             ItemFields.MediaSources,
-            ItemFields.CanDelete,
-            ItemFields.CanDownload,
             ItemFields.ProviderIds
           ],
           imageTypeLimit: 1,
@@ -212,12 +205,9 @@ class UserLibrariesStore {
       const upNext = (
         await remote.sdk.newUserApi(getTvShowsApi).getNextUp({
           userId: remote.auth.currentUserId,
-          limit: 24,
           fields: [
             ItemFields.PrimaryImageAspectRatio,
             ItemFields.MediaSources,
-            ItemFields.CanDelete,
-            ItemFields.CanDownload,
             ItemFields.ProviderIds
           ],
           imageTypeLimit: 1,
@@ -245,14 +235,10 @@ class UserLibrariesStore {
     try {
       const latestMedia = (
         await remote.sdk.newUserApi(getUserLibraryApi).getLatestMedia({
-          userId: remote.auth.currentUserId || '',
-          limit: 24,
+          userId: remote.auth.currentUserId ?? '',
           fields: [
             ItemFields.PrimaryImageAspectRatio,
             ItemFields.MediaSources,
-
-            ItemFields.CanDelete,
-            ItemFields.CanDownload,
             ItemFields.ProviderIds
           ],
           imageTypeLimit: 1,
@@ -277,14 +263,11 @@ class UserLibrariesStore {
     try {
       const carouselItems = (
         await remote.sdk.newUserApi(getUserLibraryApi).getLatestMedia({
-          userId: remote.auth.currentUserId || '',
-          limit: 10,
+          userId: remote.auth.currentUserId ?? '',
           fields: [
             ItemFields.Overview,
             ItemFields.PrimaryImageAspectRatio,
             ItemFields.MediaSources,
-            ItemFields.CanDelete,
-            ItemFields.CanDownload,
             ItemFields.ProviderIds
           ],
           enableImageTypes: [ImageType.Backdrop, ImageType.Logo],

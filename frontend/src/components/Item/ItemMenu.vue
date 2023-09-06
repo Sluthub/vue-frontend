@@ -1,14 +1,15 @@
 <template>
-  <v-btn
+  <VBtn
     v-if="options.length > 0"
     :variant="outlined ? 'outlined' : undefined"
+    icon
     size="small"
     @click.stop.prevent="onActivatorClick"
     @contextmenu.stop.prevent="onRightClick">
-    <v-icon>
-      <i-mdi-dots-horizontal />
-    </v-icon>
-    <v-menu
+    <VIcon>
+      <IMdiDotsVertical />
+    </VIcon>
+    <VMenu
       v-model="show"
       :persistent="false"
       close-on-content-click
@@ -16,12 +17,12 @@
       :z-index="zIndex"
       scroll-strategy="close"
       location="top">
-      <v-list nav>
+      <VList nav>
         <template v-for="(section, index1) in options">
-          <v-divider
+          <VDivider
             v-if="section.length > 0 && index1 > 0"
             :key="`item-${item.Id}-section-${index1}-divider`" />
-          <v-list-item
+          <VListItem
             v-for="(menuOption, index2) in section"
             :key="`item-${item.Id}-section-${index1}-option-${index2}`"
             class="text"
@@ -30,31 +31,32 @@
             :prepend-icon="menuOption.icon"
             @click="menuOption.action" />
         </template>
-      </v-list>
-    </v-menu>
-  </v-btn>
-  <metadata-editor-dialog
-    v-if="metadataDialog && item.Id"
-    :item-id="item.Id"
+      </VList>
+    </VMenu>
+  </VBtn>
+  <MetadataEditorDialog
+    v-if="metadataDialog && itemId"
+    :item-id="itemId"
     @close="metadataDialog = false" />
-  <refresh-metadata-dialog
+  <RefreshMetadataDialog
     v-if="refreshDialog && item.Id"
     :item="menuProps.item"
     @close="refreshDialog = false" />
-  <identify-dialog
+  <IdentifyDialog
     v-if="identifyItemDialog && item.Id"
     :item="menuProps.item"
     @close="identifyItemDialog = false" />
-  <media-detail-dialog
+  <MediaDetailDialog
     v-if="mediaInfoDialog && item.Id"
     :item="menuProps.item"
+    :media-source-index="mediaSourceIndex"
     @close="mediaInfoDialog = false" />
 </template>
 
 <script lang="ts">
 import { computed, getCurrentInstance, onMounted, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useEventListener } from '@vueuse/core';
+import { useEventListener, useClipboard } from '@vueuse/core';
 import { BaseItemDto } from '@jellyfin/sdk/lib/generated-client';
 import IMdiPlaySpeed from 'virtual:icons/mdi/play-speed';
 import IMdiArrowExpandUp from 'virtual:icons/mdi/arrow-expand-up';
@@ -63,8 +65,6 @@ import IMdiCloudSearch from 'virtual:icons/mdi/cloud-search-outline';
 import IMdiContentCopy from 'virtual:icons/mdi/content-copy';
 import IMdiDelete from 'virtual:icons/mdi/delete';
 import IMdiDisc from 'virtual:icons/mdi/disc';
-import IMdiDownload from 'virtual:icons/mdi/download';
-import IMdiDownloadMultiple from 'virtual:icons/mdi/download-multiple';
 import IMdiInformation from 'virtual:icons/mdi/information';
 import IMdiPlaylistMinus from 'virtual:icons/mdi/playlist-minus';
 import IMdiPlaylistPlus from 'virtual:icons/mdi/playlist-plus';
@@ -74,15 +74,17 @@ import IMdiReplay from 'virtual:icons/mdi/replay';
 import IMdiRefresh from 'virtual:icons/mdi/refresh';
 import { getLibraryApi } from '@jellyfin/sdk/lib/utils/api/library-api';
 import { useRoute, useRouter } from 'vue-router';
+import { v4 } from 'uuid';
 import { useRemote, useSnackbar, useConfirmDialog } from '@/composables';
 import {
   canIdentify,
   canInstantMix,
   canRefreshMetadata,
   canResume,
-  getItemDownloadObject,
-  getItemSeasonDownloadObjects,
-  getItemSeriesDownloadObjects
+  getItemIdFromSourceIndex,
+  getItemDownloadUrl,
+  getItemSeasonDownloadMap,
+  getItemSeriesDownloadMap
 } from '@/utils/items';
 import { playbackManagerStore, taskManagerStore } from '@/store';
 import {
@@ -102,15 +104,10 @@ type MenuOption = {
 /**
  * SHARED STATE ACROSS ALL THE COMPONENT INSTANCES
  */
-const openItemId = ref<string>();
+const openMenu = ref<string>();
 </script>
 
 <script setup lang="ts">
-const { t } = useI18n();
-const remote = useRemote();
-const router = useRouter();
-const route = useRoute();
-
 const menuProps = withDefaults(
   defineProps<{
     item: BaseItemDto;
@@ -118,24 +115,40 @@ const menuProps = withDefaults(
     zIndex?: number;
     rightClick?: boolean;
     queue?: boolean;
+    mediaSourceIndex?: number;
   }>(),
   {
     outlined: false,
     zIndex: 1000,
     rightClick: true,
-    queue: false
+    queue: false,
+    mediaSourceIndex: undefined
   }
 );
+const { t } = useI18n();
+const instanceId = v4();
+const remote = useRemote();
+const router = useRouter();
+const route = useRoute();
 
 const parent = getCurrentInstance()?.parent;
+/**
+ * Ensure only one item menu is always open at a time, regardless if there are duplicated ones in
+ * the same screen
+ */
 const show = computed({
   get() {
-    return openItemId.value === menuProps.item.Id;
+    return instanceId === openMenu.value;
   },
   set(newVal: boolean) {
-    openItemId.value = newVal ? menuProps.item.Id : undefined;
+    openMenu.value = newVal ? instanceId : undefined;
   }
 });
+const itemId = computed(
+  () => getItemIdFromSourceIndex(
+    menuProps.item, menuProps.mediaSourceIndex
+  )
+);
 const positionX = ref<number | undefined>(undefined);
 const positionY = ref<number | undefined>(undefined);
 const metadataDialog = ref(false);
@@ -148,6 +161,23 @@ const errorMessage = t('errors.anErrorHappened');
 const isItemRefreshing = computed(
   () => taskManager.getTask(menuProps.item.Id || '') !== undefined
 );
+const itemDeletionName = computed(() => {
+  const parentName = menuProps.item.Name ?? undefined;
+  const mediaSource =
+    menuProps.item.MediaSources?.[menuProps.mediaSourceIndex ?? -1];
+
+  if (mediaSource?.Name) {
+    let name = mediaSource.Name;
+
+    if (parentName) {
+      name = `${parentName} - ${name}`;
+    }
+
+    return name;
+  }
+
+  return parentName;
+});
 
 /**
  * == ACTIONS ==
@@ -260,16 +290,16 @@ const deleteItemAction = {
   action: async (): Promise<void> => {
     await useConfirmDialog(
       async () => {
-        if (!menuProps.item.Id) {
+        if (!itemId.value) {
           return;
         }
 
         try {
           await remote.sdk.newUserApi(getLibraryApi).deleteItem({
-            itemId: menuProps.item.Id
+            itemId: itemId.value
           });
 
-          if (route.fullPath.includes(menuProps.item.Id)) {
+          if (itemId.value === menuProps.item.Id && route.fullPath.includes(itemId.value)) {
             await router.replace('/');
           }
         } catch (error) {
@@ -281,6 +311,7 @@ const deleteItemAction = {
       {
         title: t('deleteItem'),
         text: t('deleteItemDescription'),
+        subtitle: itemDeletionName.value,
         confirmText: t('delete')
       }
     );
@@ -293,70 +324,59 @@ const identifyItemAction = {
     identifyItemDialog.value = true;
   }
 };
-const sharedDownloadAction = async (): Promise<void> => {
-  if (menuProps.item.Id && menuProps.item.Type && menuProps.item.Path) {
-    let downloadURLs: DownloadableFile[] = [];
-
-    switch (menuProps.item.Type) {
-      case 'Season': {
-        downloadURLs = await getItemSeasonDownloadObjects(menuProps.item.Id);
-        break;
-      }
-      case 'Series': {
-        downloadURLs = await getItemSeriesDownloadObjects(menuProps.item.Id);
-        break;
-      }
-      default: {
-        const url = getItemDownloadObject(
-          menuProps.item.Id,
-          menuProps.item.Path
-        );
-
-        if (url) {
-          downloadURLs = [url];
-        }
-
-        break;
-      }
-    }
-
-    if (downloadURLs) {
-      try {
-        await downloadFiles(downloadURLs);
-      } catch (error) {
-        console.error(error);
-
-        useSnackbar(errorMessage, 'error');
-      }
-    } else {
-      console.error(
-        'Unable to get download URL for selected item/series/season'
-      );
-      useSnackbar(errorMessage, 'error');
-    }
-  }
-};
-const singleDownloadAction = {
-  title: t('downloadItem', 1),
-  icon: IMdiDownload,
-  action: sharedDownloadAction
-};
-const multiDownloadAction = {
-  title: t('downloadItem', 2),
-  icon: IMdiDownloadMultiple,
-  action: sharedDownloadAction
-};
-const copyStreamURLAction = {
+const copyDownloadURLAction = {
   title: t('copyStreamURL'),
   icon: IMdiContentCopy,
   action: async (): Promise<void> => {
-    if (menuProps.item.Id) {
-      const downloadHref = getItemDownloadObject(menuProps.item.Id);
+    const clipboard = useClipboard();
+    let streamUrls: Map<string, string> | string | undefined;
 
-      if (downloadHref?.url) {
-        await useClipboardWrite(downloadHref.url);
+    if (!clipboard.isSupported.value) {
+      useSnackbar(t('clipboardUnsupported'), 'error');
+
+      return;
+    }
+
+    if (menuProps.item.Id) {
+      switch (menuProps.item.Type) {
+        case 'Season': {
+          streamUrls = await getItemSeasonDownloadMap(menuProps.item.Id);
+          break;
+        }
+        case 'Series': {
+          streamUrls = await getItemSeriesDownloadMap(menuProps.item.Id);
+          break;
+        }
+        default: {
+          streamUrls = getItemDownloadUrl(itemId.value);
+          break;
+        }
+      }
+
+      /**
+       * The Map is mapped to an string like: EpisodeName: DownloadUrl
+       */
+      const text =
+        streamUrls instanceof Map
+          ? [...streamUrls.entries()]
+              .map(([k, v]) => `(${k}) - ${v}`)
+              .join('\n')
+          : streamUrls;
+
+      const copyAction = async (txt: string): Promise<void> => {
+        await clipboard.copy(txt);
+        useSnackbar(t('clipboardSuccess'), 'success');
+      };
+
+      if (text) {
+        await (typeof streamUrls === 'string'
+          ? copyAction(text)
+          : useConfirmDialog(async () => await copyAction(text), {
+            title: t('copyPrompt'),
+            text: text,
+            confirmText: t('accept')
+          }));
       } else {
-        console.error('Unable to get stream URL for selected item');
         useSnackbar(errorMessage, 'error');
       }
     }
@@ -429,22 +449,15 @@ function getPlaybackOptions(): MenuOption[] {
 /**
  * Copy and download action for the current selected item
  */
-function getCopyDownloadOptions(): MenuOption[] {
-  const copyDownloadActions: MenuOption[] = [];
+function getCopyOptions(): MenuOption[] {
+  const copyActions: MenuOption[] = [];
+  const remote = useRemote();
 
-  if (menuProps.item.CanDownload) {
-    copyDownloadActions.push(copyStreamURLAction);
-
-    if (canBrowserDownloadItem(menuProps.item)) {
-      copyDownloadActions.push(singleDownloadAction);
-
-      if (['Season', 'Series'].includes(menuProps.item.Type || '')) {
-        copyDownloadActions.push(multiDownloadAction);
-      }
-    }
+  if (remote.auth.currentUser?.Policy?.EnableContentDownloading) {
+    copyActions.push(copyDownloadURLAction);
   }
 
-  return copyDownloadActions;
+  return copyActions;
 }
 
 /**
@@ -469,7 +482,10 @@ function getLibraryOptions(): MenuOption[] {
     }
   }
 
-  if (menuProps.item.CanDelete) {
+  if (
+    remote.auth.currentUser?.Policy?.EnableContentDeletion ||
+    remote.auth.currentUser?.Policy?.EnableContentDeletionFromFolders
+  ) {
     libraryOptions.push(deleteItemAction);
   }
 
@@ -480,7 +496,7 @@ const options = computed(() => {
   return [
     getQueueOptions(),
     getPlaybackOptions(),
-    getCopyDownloadOptions(),
+    getCopyOptions(),
     getLibraryOptions()
   ];
 });

@@ -1,11 +1,13 @@
 <template>
   <template v-if="mediaElementType">
-    <Teleport :to="teleportTarget" :disabled="!teleportTarget">
-      <component
+    <Teleport
+      :to="teleportTarget"
+      :disabled="!teleportTarget">
+      <Component
         :is="mediaElementType"
         v-show="mediaElementType === 'video' && teleportTarget"
         ref="mediaElementRef"
-        :poster="posterUrl"
+        :poster="String(posterUrl)"
         autoplay
         crossorigin="anonymous"
         playsinline
@@ -19,7 +21,7 @@
           :label="sub.label"
           :srclang="sub.srcLang"
           :src="sub.src" />
-      </component>
+      </Component>
     </Teleport>
   </template>
 </template>
@@ -32,7 +34,8 @@ import Hls, { ErrorData } from 'hls.js';
 import {
   playbackManagerStore,
   playerElementStore,
-  mediaElementRef
+  mediaElementRef,
+  mediaWebAudio
 } from '@/store';
 import { getImageInfo } from '@/utils/images';
 import { useSnackbar } from '@/composables';
@@ -46,8 +49,8 @@ const { t } = useI18n();
 
 const hls = Hls.isSupported()
   ? new Hls({
-      testBandwidth: false
-    })
+    testBandwidth: false
+  })
   : undefined;
 
 /**
@@ -58,6 +61,18 @@ function detachHls(): void {
     hls.detachMedia();
     hls.off(Hls.Events.ERROR, onHlsEror);
   }
+}
+
+/**
+ * Suspends WebAudio when no playback is in place
+ */
+async function detachWebAudio(): Promise<void> {
+  if (mediaWebAudio.sourceNode) {
+    mediaWebAudio.sourceNode.disconnect();
+    mediaWebAudio.sourceNode = undefined;
+  }
+
+  await mediaWebAudio.context.suspend();
 }
 
 const mediaElementType = computed<'audio' | 'video' | undefined>(() => {
@@ -73,7 +88,7 @@ const mediaElementType = computed<'audio' | 'video' | undefined>(() => {
  * we need to ensure the DOM elements are mounted before the teleport target is ready
  */
 const teleportTarget = computed<
-  '.fullscreen-video-container' | '.minimized-video-container' | undefined
+'.fullscreen-video-container' | '.minimized-video-container' | undefined
 >(() => {
   if (playbackManager.currentlyPlayingMediaType === 'Video') {
     if (playerElement.isFullscreenMounted) {
@@ -84,13 +99,13 @@ const teleportTarget = computed<
   }
 });
 
-const posterUrl = computed<string>(() =>
+const posterUrl = computed(() =>
   !isNil(playbackManager.currentItem) &&
   playbackManager.currentlyPlayingMediaType === 'Video'
     ? getImageInfo(playbackManager.currentItem, {
-        preferBackdrop: true
-      }).url || ''
-    : ''
+      preferBackdrop: true
+    }).url
+    : undefined
 );
 
 /**
@@ -99,6 +114,9 @@ const posterUrl = computed<string>(() =>
 async function onLoadedData(): Promise<void> {
   if (playbackManager.currentlyPlayingMediaType === 'Video') {
     if (mediaElementRef.value) {
+      /**
+       * Makes the resume start from the correct time
+       */
       mediaElementRef.value.currentTime = playbackManager.currentTime;
     }
 
@@ -113,7 +131,7 @@ function onHlsEror(_event: typeof Hls.Events.ERROR, data: ErrorData): void {
   if (data.fatal && hls) {
     switch (data.type) {
       case Hls.ErrorTypes.NETWORK_ERROR: {
-        // try to recover network error
+        // Try to recover network error
         useSnackbar(t('errors.playback.networkError'), 'error');
         console.error('fatal network error encountered, try to recover');
         hls.startLoad();
@@ -153,10 +171,19 @@ watch(
 watch(mediaElementRef, async () => {
   await nextTick();
   detachHls();
+  await detachWebAudio();
 
-  if (mediaElementRef.value && mediaElementType.value === 'video' && hls) {
-    hls.attachMedia(mediaElementRef.value);
-    hls.on(Hls.Events.ERROR, onHlsEror);
+  if (mediaElementRef.value) {
+    if (mediaElementType.value === 'video' && hls) {
+      hls.attachMedia(mediaElementRef.value);
+      hls.on(Hls.Events.ERROR, onHlsEror);
+    }
+
+    await mediaWebAudio.context.resume();
+    mediaWebAudio.sourceNode = mediaWebAudio.context.createMediaElementSource(
+      mediaElementRef.value
+    );
+    mediaWebAudio.sourceNode.connect(mediaWebAudio.context.destination);
   }
 });
 
@@ -167,19 +194,24 @@ watch(
       hls.stopLoad();
     }
 
-    if (!newUrl) {
-      return;
-    }
-
     if (
       mediaElementRef.value &&
-      (playbackManager.currentMediaSource?.SupportsDirectPlay || !hls)
+      (!newUrl ||
+        playbackManager.currentMediaSource?.SupportsDirectPlay ||
+        !hls)
     ) {
       /**
-       * For the video case, Safari iOS doesn't support hls.js but supports native HLS
+       * For the video case, Safari iOS doesn't support hls.js but supports native HLS.
+       *
+       * We stringify undefined instead of skipping this block when there's no new source url,
+       * so the player doesn't restart playback of the previous item
        */
-      mediaElementRef.value.src = newUrl;
-    } else if (hls && playbackManager.currentlyPlayingMediaType === 'Video') {
+      mediaElementRef.value.src = String(newUrl);
+    } else if (
+      hls &&
+      playbackManager.currentlyPlayingMediaType === 'Video' &&
+      newUrl
+    ) {
       /**
        * We need to check if HLS.js can handle transcoded audio to remove the video check
        */

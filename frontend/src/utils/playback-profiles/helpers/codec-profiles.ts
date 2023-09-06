@@ -44,8 +44,10 @@ function getGlobalMaxVideoBitrate(): number | undefined {
     isTizenFhd = !window.webapis.productinfo.isUdPanelSupported();
   }
 
-  // TODO: These values are taken directly from Jellyfin-web.
-  // The source of them needs to be investigated.
+  /*
+   * TODO: These values are taken directly from Jellyfin-web.
+   * The source of them needs to be investigated.
+   */
   if (isPs4()) {
     return 8_000_000;
   }
@@ -298,7 +300,7 @@ export function getCodecProfiles(
     );
   }
 
-  const globalMaxVideoBitrate = (getGlobalMaxVideoBitrate() || '').toString();
+  const globalMaxVideoBitrate = (getGlobalMaxVideoBitrate() ?? '').toString();
 
   if (globalMaxVideoBitrate) {
     h264CodecProfileConditions.push(

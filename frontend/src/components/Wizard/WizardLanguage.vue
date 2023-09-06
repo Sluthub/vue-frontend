@@ -1,6 +1,6 @@
 <template>
   <div>
-    <v-select
+    <VSelect
       v-model="uiCulture"
       :loading="loading"
       variant="outlined"
@@ -10,13 +10,13 @@
       item-value="Value"
       :items="culturesList"
       :disabled="loading" />
-    <v-btn
+    <VBtn
       color="primary"
       variant="elevated"
       :loading="loading"
       @click="setLanguage">
       {{ t('next') }}
-    </v-btn>
+    </VBtn>
   </div>
 </template>
 
@@ -32,7 +32,9 @@ import { getLocalizationApi } from '@jellyfin/sdk/lib/utils/api/localization-api
 import { useRemote, useSnackbar } from '@/composables';
 import { SomeItemSelectedRule } from '@/utils/validation';
 
-const emit = defineEmits<{ (e: 'step-complete'): void }>();
+const emit = defineEmits<{
+  'step-complete': [];
+}>();
 
 const remote = useRemote();
 const { locale, t } = useI18n();

@@ -1,6 +1,6 @@
 import { DisplayPreferencesDto } from '@jellyfin/sdk/lib/generated-client';
 import { getDisplayPreferencesApi } from '@jellyfin/sdk/lib/utils/api/display-preferences-api';
-import destr from 'destr';
+import { destr } from 'destr';
 import { usei18n, useRemote, useSnackbar } from '@/composables';
 import { taskManagerStore } from '@/store';
 
@@ -63,22 +63,20 @@ export async function updateDisplayPreferences(
     displayPreferencesId
   );
 
-  const newDisplayPreferences = Object.assign(
-    {},
-    currentDisplayPreferences,
-    displayPreferences
-  );
+  const newDisplayPreferences = {
+    ...currentDisplayPreferences,
+    ...displayPreferences
+  };
 
-  // if either old or new preferences have custom settings, merge them
+  // If either old or new preferences have custom settings, merge them
   if (
     currentDisplayPreferences.CustomPrefs !== undefined ||
     newDisplayPreferences.CustomPrefs !== undefined
   ) {
-    const mergedCustomPrefs = Object.assign(
-      {},
-      currentDisplayPreferences.CustomPrefs ?? {},
-      displayPreferences.CustomPrefs ?? {}
-    );
+    const mergedCustomPrefs = {
+      ...currentDisplayPreferences.CustomPrefs,
+      ...displayPreferences.CustomPrefs
+    };
 
     newDisplayPreferences.CustomPrefs = Object.fromEntries(
       Object.entries(mergedCustomPrefs)

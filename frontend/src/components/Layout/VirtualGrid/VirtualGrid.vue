@@ -1,10 +1,10 @@
 <template>
-  <component
+  <Component
     :is="tag"
     v-show="items.length > 0"
     ref="rootRef"
     :style="rootStyles">
-    <component
+    <Component
       :is="probeTag"
       ref="probeRef"
       :style="{
@@ -15,8 +15,11 @@
         zIndex: -1,
         placeSelf: 'stretch'
       }">
-      <slot :item="items[0]" :index="0" :style="undefined" />
-    </component>
+      <slot
+        :item="items[0]"
+        :index="0"
+        :style="undefined" />
+    </Component>
     <template v-if="visibleItems && visibleItems.length > 0">
       <slot
         v-for="(_n, i) in visibleItems.length"
@@ -26,7 +29,7 @@
         :style="visibleItems[i].style"
         data-virtualized-grid />
     </template>
-  </component>
+  </Component>
 </template>
 
 <script lang="ts">
@@ -40,7 +43,7 @@
  * - Full virtual scroll, no virtual + infinite scroll (as all the items are fetched from the server and we don't have pagination)
  * - Vue instance reuse
  * - No need for probe slot, default to first default slot
- * - Types for BaseItemDto
+ * - Type support for the data that must be passed to the virtualized component's instances
  * - Improved documentation and comments
  */
 import {
@@ -59,7 +62,6 @@ import {
   useResizeObserver,
   useThrottleFn
 } from '@vueuse/core';
-import { BaseItemDto } from '@jellyfin/sdk/lib/generated-client';
 import { isNil } from 'lodash-es';
 import {
   fromScrollParent,
@@ -79,10 +81,10 @@ const displayWidth = refDebounced(display.width, 250);
 const displayHeight = refDebounced(display.height, 250);
 </script>
 
-<script setup lang="ts">
+<script setup lang="ts" generic="T">
 const props = withDefaults(
   defineProps<{
-    items: BaseItemDto[];
+    items: T[];
     tag?: string;
     probeTag?: string;
     bufferMultiplier?: number;
@@ -134,9 +136,9 @@ const contentSize = computed(() => {
 });
 const rootStyles = computed<StyleValue>(() =>
   Object.fromEntries([
-    ...Object.entries(contentSize.value || {}).map(([property, value]) => [
+    ...Object.entries(contentSize.value ?? {}).map(([property, value]) => [
       property,
-      value + 'px'
+      `${value}px`
     ]),
     ['placeContent', 'start']
   ])
@@ -210,8 +212,8 @@ watch(
       const fn =
         props.throttleScroll > 0
           ? useThrottleFn(() => {
-              scrollEvents.value++;
-            }, props.throttleScroll)
+            scrollEvents.value++;
+          }, props.throttleScroll)
           : (): void => {
               scrollEvents.value++;
             };

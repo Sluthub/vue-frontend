@@ -4,11 +4,11 @@
  * In the other part, playbackManager is suited to handle the playback state in
  * an agnostic way, regardless of where the media is being played (remotely or locally)
  */
-import { cloneDeep, isNil } from 'lodash-es';
+import { isNil } from 'lodash-es';
 import { nextTick, reactive, watch } from 'vue';
 import JASSUB from 'jassub';
 import jassubWorker from 'jassub/dist/jassub-worker.js?url';
-import 'jassub/dist/jassub-worker.wasm?url';
+import jassubWasmUrl from 'jassub/dist/jassub-worker.wasm?url';
 import jassubDefaultFont from 'jassub/dist/default.woff2?url';
 import { mediaElementRef, playbackManagerStore } from '@/store';
 import { useRemote, useRouter } from '@/composables';
@@ -32,7 +32,7 @@ interface PlayerElementState {
  */
 class PlayerElementStore {
   /**
-   * == STATE ==
+   * == STATE SECTION ==
    */
   private _defaultState: PlayerElementState = {
     isFullscreenMounted: false,
@@ -40,7 +40,9 @@ class PlayerElementStore {
     isStretched: true
   };
 
-  private _state = reactive<PlayerElementState>(cloneDeep(this._defaultState));
+  private _state = reactive<PlayerElementState>(
+    structuredClone(this._defaultState)
+  );
   /**
    * == GETTERS AND SETTERS ==
    */
@@ -96,6 +98,7 @@ class PlayerElementStore {
         subUrl: trackSrc,
         fonts: attachedFonts,
         workerUrl: jassubWorker,
+        wasmUrl: jassubWasmUrl,
         availableFonts: { 'liberation sans': jassubDefaultFont },
         // Both parameters needed for subs to work on iOS
         prescaleFactor: 0.8,
@@ -189,7 +192,7 @@ class PlayerElementStore {
        * If VTT found, applying it
        */
       mediaElementRef.value.textTracks[vttIdx].mode = 'showing';
-    } else if (ass !== undefined && ass.src) {
+    } else if (ass?.src) {
       /**
        * If SSA, using Subtitle Opctopus
        */

@@ -1,36 +1,43 @@
 <template>
-  <generic-dialog
+  <GenericDialog
     :model-value="model"
-    :title="$t('mediaInfo')"
-    @close="
-      [
-        () => {
-          model = false;
-          emit('close');
-        }
-      ]
-    ">
-    <template v-if="mediaSources.length > 1">
-      <v-card-text>
-        <media-source-selector
+    :title="displayName"
+    @close="close">
+    <template v-if="mediaSources.length > 1 && isNil(mediaSourceIndex)">
+      <VCardText>
+        <MediaSourceSelector
           class="pt-2"
           :default-source-index="selectedMediaSourceIndex"
           :sources="mediaSources"
           :label="t('selectVersion')"
           @input="selectedMediaSourceIndex = $event" />
-      </v-card-text>
-      <v-divider />
+      </VCardText>
+      <VDivider />
     </template>
 
-    <v-card-text
+    <template v-if="generalProperties">
+      <VContainer>
+        <template v-for="[key, val] of generalProperties">
+          <MediaDetailAttr
+            v-if="!isNil(val)"
+            :key="key"
+            :name="key"
+            :value="val" />
+        </template>
+      </VContainer>
+    </template>
+
+    <VCardText
       v-if="selectedMediaSource"
       class="pa-3 d-flex flex-column flex-grow-1">
       <template v-if="(selectedMediaSource.MediaStreams?.length ?? 0) > 0">
-        <v-tabs v-model="currentTab" direction="horizontal" center-active>
-          <v-tab value="general">{{ $t('general') }}</v-tab>
-          <v-tab
+        <VTabs
+          v-model="currentTab"
+          direction="horizontal"
+          center-active>
+          <VTab
             v-for="(_, idx) in selectedMediaStreamsVideo"
-            :key="'mediaStreamTabVideo' + idx"
+            :key="`mediaStreamTabVideo-${idx}-${String(_)}`"
             :value="`video-${idx}`">
             {{
               t(
@@ -39,44 +46,38 @@
                 selectedMediaStreamsVideo.length
               )
             }}
-          </v-tab>
-          <v-tab
+          </VTab>
+          <VTab
             v-for="(_, idx) in selectedMediaStreamsAudio"
-            :key="'mediaStreamTabAudio' + idx"
+            :key="`mediaStreamTabAudio-${idx}-${String(_)}`"
             :value="`audio-${idx}`">
             {{
-              t(
+              `${t(
                 'mediaInfoTitlesAudioCodec',
                 [idx + 1],
                 selectedMediaStreamsAudio.length
-              )
+              )} (${getDisplayLocaleName(
+                selectedMediaStreamsAudio[idx]?.Language
+              )})`
             }}
-            {{
-              selectedMediaStreamsAudio[idx].Language
-                ? ' (' + selectedMediaStreamsAudio[idx].Language + ')'
-                : ''
-            }}
-          </v-tab>
-          <v-tab
+          </VTab>
+          <VTab
             v-for="(_, idx) in selectedMediaStreamsSubs"
-            :key="'mediaStreamTabSubs' + idx"
+            :key="`mediaStreamTabSubs-${idx}-${String(_)}`"
             :value="`subs-${idx}`">
             {{
-              t(
+              `${t(
                 'mediaInfoTitlesSubtitleCodec',
                 [idx + 1],
                 selectedMediaStreamsSubs.length
-              )
+              )} (${getDisplayLocaleName(
+                selectedMediaStreamsSubs[idx]?.Language
+              )})`
             }}
-            {{
-              selectedMediaStreamsSubs[idx].Language
-                ? ' (' + selectedMediaStreamsSubs[idx].Language + ')'
-                : ''
-            }}
-          </v-tab>
-          <v-tab
+          </VTab>
+          <VTab
             v-for="(_, idx) in selectedMediaStreamsImage"
-            :key="'mediaStreamTabImage' + idx"
+            :key="`mediaStreamTabEmbedImage-${idx}-${String(_)}`"
             :value="`image-${idx}`">
             {{
               t(
@@ -85,113 +86,46 @@
                 selectedMediaStreamsImage.length
               )
             }}
-          </v-tab>
-        </v-tabs>
-        <v-window v-model="currentTab" class="pa-2 flex-fill">
-          <v-window-item value="general" class="stream-info">
-            <h2 v-if="selectedMediaSource.Name" class="d-block my-2">
-              <span class="mr-1">{{ displayName }}</span>
-            </h2>
-            <media-detail-attr
-              v-if="selectedMediaSource.Container"
-              :name="t('mediaInfoFileContainer')"
-              :value="selectedMediaSource.Container" />
-            <media-detail-attr
-              v-if="
-                Array.isArray(selectedMediaSource.Formats) &&
-                selectedMediaSource.Formats.length > 0
-              "
-              :name="t('mediaInfoFileFormats')"
-              :value="selectedMediaSource.Formats.join(',')" />
-            <media-detail-attr
-              v-if="selectedMediaSource.Path"
-              :name="t('mediaInfoFilePath')"
-              :value="selectedMediaSource.Path" />
-            <media-detail-attr
-              v-if="selectedMediaSource.Size"
-              :name="t('mediaInfoFileSize')"
-              :value="formatFileSize(selectedMediaSource.Size)" />
-            <media-detail-attr
-              v-if="selectedMediaSource.Bitrate"
-              :name="t('mediaInfoGenericBitrate')"
-              :value="
-                (selectedMediaSource.Bitrate / 1000).toFixed(2) + ' kbps'
-              " />
-          </v-window-item>
-          <!-- We need to separate between item types, because some weird thing would happen without it. -->
-          <v-window-item
+          </VTab>
+        </VTabs>
+        <VWindow
+          v-model="currentTab"
+          class="pa-2 flex-fill">
+          <VWindowItem
             v-for="(mediaStream, idx) in selectedMediaStreamsVideo"
-            :key="'mediaStreamTabWVideo' + idx"
-            :value="`video-${idx}`"
-            class="stream-info">
-            <h3 class="d-block my-2">
-              {{
-                t(
-                  'mediaInfoTitlesVideoCodec',
-                  [idx + 1],
-                  selectedMediaStreamsVideo.length
-                )
-              }}
-            </h3>
-            <media-detail-content
+            :key="`mediaStreamTabWVideo-${idx}-${String(mediaStream)}`"
+            :value="`video-${idx}`">
+            <MediaDetailContent
               :stream="mediaStream"
               :video-timestamp="selectedMediaSource.Timestamp" />
-          </v-window-item>
-          <v-window-item
+          </VWindowItem>
+          <VWindowItem
             v-for="(mediaStream, idx) in selectedMediaStreamsAudio"
-            :key="'mediaStreamTabWAudio' + idx"
-            :value="`audio-${idx}`"
-            class="stream-info">
-            <h3 class="d-block my-2">
-              {{
-                t(
-                  'mediaInfoTitlesAudioCodec',
-                  [idx + 1],
-                  selectedMediaStreamsAudio.length
-                )
-              }}
-            </h3>
-            <media-detail-content :stream="mediaStream" />
-          </v-window-item>
-          <v-window-item
+            :key="`mediaStreamTabWAudio-${idx}-${String(mediaStream)}`"
+            :value="`audio-${idx}`">
+            <MediaDetailContent :stream="mediaStream" />
+          </VWindowItem>
+          <VWindowItem
             v-for="(mediaStream, idx) in selectedMediaStreamsSubs"
-            :key="'mediaStreamTabWSubs' + idx"
-            :value="`subs-${idx}`"
-            class="stream-info">
-            <h3 class="d-block my-2">
-              {{
-                t(
-                  'mediaInfoTitlesSubtitleCodec',
-                  [idx + 1],
-                  selectedMediaStreamsSubs.length
-                )
-              }}
-            </h3>
-            <media-detail-content :stream="mediaStream" />
-          </v-window-item>
-          <v-window-item
+            :key="`mediaStreamTabWSubs-${idx}-${String(mediaStream)}`"
+            :value="`subs-${idx}`">
+            <MediaDetailContent :stream="mediaStream" />
+          </VWindowItem>
+          <VWindowItem
             v-for="(mediaStream, idx) in selectedMediaStreamsImage"
-            :key="'mediaStreamTabWEmbedImage' + idx"
-            :value="`image-${idx}`"
-            class="stream-info">
-            <h3 class="d-block my-2">
-              {{
-                t(
-                  'mediaInfoTitlesEmbeddedImageCodec',
-                  [idx + 1],
-                  selectedMediaStreamsImage.length
-                )
-              }}
-            </h3>
-            <media-detail-content :stream="mediaStream" />
-          </v-window-item>
-        </v-window>
+            :key="`mediaStreamTabWEmbedImage-${idx}-${String(mediaStream)}`"
+            :value="`image-${idx}`">
+            <MediaDetailContent :stream="mediaStream" />
+          </VWindowItem>
+        </VWindow>
       </template>
-      <h2 v-else class="no-media text-center">
+      <h2
+        v-else
+        class="no-media text-center">
         {{ t('NoMediaStreamsAvailable') }}
       </h2>
-    </v-card-text>
-    <v-card-text
+    </VCardText>
+    <VCardText
       v-else
       class="pa-0 pb-8 flex-grow-1"
       :class="{
@@ -201,43 +135,44 @@
       <h2 class="no-media">
         {{ t('NoMediaSourcesAvailable') }}
       </h2>
-    </v-card-text>
-  </generic-dialog>
+    </VCardText>
+  </GenericDialog>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { isNil } from 'lodash-es';
 import {
   BaseItemDto,
   MediaSourceInfo,
   MediaStream
 } from '@jellyfin/sdk/lib/generated-client';
 import { useI18n } from 'vue-i18n';
-import { formatFileSize } from '@/utils/items';
+import { formatBitRate, formatFileSize } from '@/utils/items';
+import { isNumber } from '@/utils/validation';
+import { getLocaleName } from '@/utils/i18n';
 
 const props = defineProps<{ item: BaseItemDto; mediaSourceIndex?: number }>();
 
 const emit = defineEmits<{
-  (e: 'close'): void;
+  close: [];
 }>();
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 const model = ref(true);
 const currentTab = ref<string>();
+
+/**
+ * Closes the dialog and kills the DOM element.
+ */
+function close (): void {
+  model.value = false;
+  emit('close');
+}
+
 const mediaSources = computed<MediaSourceInfo[]>(() => {
   return props.item.MediaSources ?? [];
-});
-const displayName = computed<string | undefined>(() => {
-  if ((props.item.MediaSources?.length ?? 0) > 1) {
-    const parent = props.item.Name;
-
-    if (parent) {
-      return `${parent} - ${selectedMediaSource.value?.Name ?? ''}`;
-    }
-  }
-
-  return selectedMediaSource.value?.Name ?? undefined;
 });
 
 const selectedMediaSourceIndex = ref<number>(props.mediaSourceIndex ?? 0);
@@ -264,13 +199,52 @@ const selectedMediaStreamsImage = computed<MediaStream[]>(() =>
     (s) => s.Type === 'EmbeddedImage'
   )
 );
-</script>
 
-<style lang="scss" scoped>
-.stream-info {
-  display: inline-block;
-  vertical-align: top;
-  margin-right: 3rem;
-  margin-top: 0.5rem;
+const displayName = computed(() => {
+  if ((props.item.MediaSources?.length ?? 0) > 1) {
+    const parent = props.item.Name;
+
+    if (parent) {
+      return `${parent} - ${selectedMediaSource.value?.Name ?? ''}`;
+    }
+  }
+
+  return selectedMediaSource.value?.Name ?? t('mediaInfo');
+});
+const generalProperties = computed(() => {
+  if (selectedMediaSource.value) {
+    const p = new Map<string, string | number | boolean | null | undefined>();
+    const formats =
+      Array.isArray(selectedMediaSource.value.Formats) &&
+      selectedMediaSource.value.Formats.length > 0
+        ? selectedMediaSource.value.Formats.join(',')
+        : undefined;
+    const fileSize = isNumber(selectedMediaSource.value.Size)
+      ? formatFileSize(selectedMediaSource.value.Size)
+      : undefined;
+    const bitrate =
+      isNumber(selectedMediaSource.value.Bitrate) &&
+      selectedMediaSource.value.Bitrate > 0
+        ? formatBitRate(selectedMediaSource.value.Bitrate)
+        : undefined;
+
+    p.set(t('mediaInfoFileContainer'), selectedMediaSource.value.Container);
+    p.set(t('mediaInfoFileFormats'), formats);
+    p.set(t('mediaInfoFilePath'), selectedMediaSource.value.Path);
+    p.set(t('mediaInfoFileSize'), fileSize);
+    p.set(t('mediaInfoGenericBitrate'), bitrate);
+
+    return p.entries();
+  }
+});
+
+/**
+ * Invokes i18n's getLocaleName for getting the name of the locale
+ * of a media stream
+ */
+function getDisplayLocaleName(language: string | null | undefined): string {
+  const result = language ? getLocaleName(language, locale.value) : undefined;
+
+  return result ?? t('unknown');
 }
-</style>
+</script>

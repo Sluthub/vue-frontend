@@ -18,10 +18,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3.5.2
+        uses: actions/checkout@v4.0.0
+        with:
+          show-progress: false
 
       - name: Scan
-        uses: actions/dependency-review-action@v3.0.4
+        uses: actions/dependency-review-action@v3.0.8
 
   lint:
     name: Lint 🔬
@@ -29,10 +31,12 @@ jobs:
 
     steps:
       - name: Checkout ⬇️
-        uses: actions/checkout@v3.5.2
+        uses: actions/checkout@v4.0.0
+        with:
+          show-progress: false
 
       - name: Setup node environment ⚙️
-        uses: actions/setup-node@v3.6.0
+        uses: actions/setup-node@v3.8.1
         with:
           node-version: 18
           check-latest: true
@@ -49,10 +53,12 @@ jobs:
 
     steps:
       - name: Checkout ⬇️
-        uses: actions/checkout@v3.5.2
+        uses: actions/checkout@v4.0.0
+        with:
+          show-progress: false
 
       - name: Setup node environment ⚙️
-        uses: actions/setup-node@v3.6.0
+        uses: actions/setup-node@v3.8.1
         with:
           node-version: 18
           check-latest: true
@@ -76,16 +82,18 @@ jobs:
 
     steps:
       - name: Checkout ⬇️
-        uses: actions/checkout@v3.5.2
+        uses: actions/checkout@v4.0.0
+        with:
+          show-progress: false
 
       - name: Configure QEMU ⚙️
-        uses: docker/setup-qemu-action@v2.1.0
+        uses: docker/setup-qemu-action@v2.2.0
 
       - name: Configure Docker Buildx ⚙️
-        uses: docker/setup-buildx-action@v2.5.0
+        uses: docker/setup-buildx-action@v2.10.0
 
       - name: Build Docker images 🛠️
-        uses: docker/build-push-action@v4.0.0
+        uses: docker/build-push-action@v4.1.1
         with:
           context: .
           platforms: ${{ matrix.platform }}
@@ -131,10 +139,12 @@ jobs:
     runs-on: ${{ matrix.platform }}
     steps:
       - name: Checkout ⬇️
-        uses: actions/checkout@v3.5.2
+        uses: actions/checkout@v4.0.0
+        with:
+          show-progress: false
 
       - name: Setup node environment ⚙️
-        uses: actions/setup-node@v3.6.0
+        uses: actions/setup-node@v3.8.1
         with:
           node-version: 18
           check-latest: true
@@ -214,7 +224,9 @@ jobs:
 
     steps:
       - name: Checkout ⬇️
-        uses: actions/checkout@v3.5.2
+        uses: actions/checkout@v4.0.0
+        with:
+          show-progress: false
 
       - name: Check if all commits comply with the specification
         uses: webiny/action-conventional-commits@v1.1.0

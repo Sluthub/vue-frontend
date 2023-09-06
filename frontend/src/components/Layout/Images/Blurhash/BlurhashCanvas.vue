@@ -1,21 +1,35 @@
 <template>
-  <v-fade-transition>
+  <VFadeTransition>
     <canvas
       ref="canvas"
       :key="`canvas-${hash}`"
       :width="width"
       :height="height"
       class="absolute-cover" />
-  </v-fade-transition>
+  </VFadeTransition>
 </template>
 
 <script lang="ts">
 import { shallowRef, ref, watch } from 'vue';
 import { wrap } from 'comlink';
 import BlurhashWorker from './BlurhashWorker?worker&inline';
+import { useRemote } from '@/composables/use-remote';
 
+const remote = useRemote();
 const worker = new BlurhashWorker();
 const pixelWorker = wrap<typeof import('./BlurhashWorker')['default']>(worker);
+
+/**
+ * Clear cached blurhashes on logout
+ */
+watch(
+  () => remote.auth.currentUser,
+  async (newVal) => {
+    if (newVal === undefined) {
+      await pixelWorker.clearCache();
+    }
+  }
+);
 </script>
 
 <script setup lang="ts">
@@ -30,7 +44,7 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  (e: 'error'): void;
+  error: [];
 }>();
 
 const pixels = ref<Uint8ClampedArray>();
@@ -42,7 +56,7 @@ watch([props, canvas], async () => {
     const imageData = context?.createImageData(props.width, props.height);
 
     try {
-      pixels.value = await pixelWorker(
+      pixels.value = await pixelWorker.getPixels(
         props.hash,
         props.width,
         props.height,

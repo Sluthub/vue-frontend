@@ -183,27 +183,6 @@
     "noLogsFound": "Inga loggar hittades"
   },
   "manualLogin": "Manuell inloggning",
-  "mediaInfo": {
-    "audioChannels": {
-      "name": "Ljudkanaler:"
-    },
-    "audioCodec": {
-      "name": "Ljudkodek:"
-    },
-    "bitrate": {
-      "name": "Bithastighet:"
-    },
-    "container": {
-      "name": "Container:"
-    },
-    "name": "Media",
-    "subtitleCodec": {
-      "name": "Undertextkodek:"
-    },
-    "videoCodec": {
-      "name": "Videokodek:"
-    }
-  },
   "menu": "Meny",
   "metadata": {
     "source": "Källa",

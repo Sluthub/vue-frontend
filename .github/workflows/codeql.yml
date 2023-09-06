@@ -32,7 +32,9 @@ jobs:
 
     steps:
       - name: Checkout repository ⬇️
-        uses: actions/checkout@v3.5.2
+        uses: actions/checkout@v4.0.0
+        with:
+          show-progress: false
 
       - name: Initialize CodeQL 🛠️
         uses: github/codeql-action/init@v2

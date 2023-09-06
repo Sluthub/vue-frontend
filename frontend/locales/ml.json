@@ -14,7 +14,7 @@
   "aspectRatio": "വീക്ഷണാനുപാതം",
   "audio": "ഓഡിയോ",
   "audioCodecNotSupported": "ഓഡിയോ കോഡെക് പിന്തുണയ്‌ക്കുന്നില്ല",
-  "badRequest": "മോശം അഭ്യർത്ഥന. വീണ്ടും ശ്രമിക്ക്",
+  "badRequest": "മോശം അഭ്യർത്ഥന. വീണ്ടും ശ്രമിക്ക്",
   "books": "പുസ്തകങ്ങൾ",
   "browserNotSupported": "ഈ ഫയൽ പ്ലേ ചെയ്യുന്നതിന് നിങ്ങളുടെ ബ്ര browser സറിനെ പിന്തുണയ്ക്കുന്നില്ല.",
   "buttons": {
@@ -163,27 +163,6 @@
     "noLogsFound": "ലോഗുകളൊന്നും കണ്ടെത്തിയില്ല"
   },
   "manualLogin": "സ്വമേധയാലുള്ള ലോഗിൻ",
-  "mediaInfo": {
-    "audioChannels": {
-      "name": "ഓഡിയോ ചാനലുകൾ:"
-    },
-    "audioCodec": {
-      "name": "ഓഡിയോ കോഡെക്:"
-    },
-    "bitrate": {
-      "name": "ബിട്രേറ്റ്:"
-    },
-    "container": {
-      "name": "കണ്ടെയ്നർ:"
-    },
-    "name": "മീഡിയ",
-    "subtitleCodec": {
-      "name": "സബ്‌ടൈറ്റിൽ കോഡെക്:"
-    },
-    "videoCodec": {
-      "name": "വീഡിയോ കോഡെക്:"
-    }
-  },
   "menu": "മെനു",
   "metadata": {
     "source": "ഉറവിടം",
@@ -192,7 +171,7 @@
     "type": "തരം"
   },
   "metadataEditor": "മെറ്റാഡാറ്റ എഡിറ്റർ",
-  "metadataNoResultsMatching": "\"{search}\" എന്നതുമായി പൊരുത്തപ്പെടുന്ന ഫലങ്ങളൊന്നുമില്ല. പുതിയതൊന്ന് സൃഷ്ടിക്കാൻ എന്റർ അമർത്തുക.",
+  "metadataNoResultsMatching": "\"{search}\" എന്നതുമായി പൊരുത്തപ്പെടുന്ന ഫലങ്ങളൊന്നുമില്ല. പുതിയതൊന്ന് സൃഷ്ടിക്കാൻ എന്റർ അമർത്തുക.",
   "more": "കൂടുതൽ",
   "moreLikeArtist": "{artist} പോലുള്ള കൂടുതൽ",
   "moreLikeThis": "ഇതുപോലുള്ള കൂടുതൽ",

@@ -201,27 +201,6 @@
     "noLogsFound": "找不到日志"
   },
   "manualLogin": "手动登录",
-  "mediaInfo": {
-    "audioChannels": {
-      "name": "音频通道："
-    },
-    "audioCodec": {
-      "name": "音频编码："
-    },
-    "bitrate": {
-      "name": "比特率："
-    },
-    "container": {
-      "name": "容器："
-    },
-    "name": "媒体",
-    "subtitleCodec": {
-      "name": "字幕编码："
-    },
-    "videoCodec": {
-      "name": "视频编码："
-    }
-  },
   "menu": "菜单",
   "metadata": {
     "source": "来源",
@@ -340,7 +319,7 @@
   "series": "系列",
   "server": "服务器",
   "serverVersion": "服务器版本",
-  "serverVersionTooLow": "服务器版本必须为 10.7.0 或更高",
+  "serverVersionTooLow": "服务器版本必须为 {version} 或更高",
   "settings": {
     "apiKeys": {
       "accessToken": "访问密钥",
@@ -540,6 +519,9 @@
     }
   },
   "unknown": "未知",
+  "unknownAlbum": "未知专辑",
+  "unknownArtist": "未知艺术家",
+  "unknownTitle": "未知标题",
   "unliked": "不喜欢",
   "unplayed": "未播放",
   "upNext": "下一个",

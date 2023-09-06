@@ -1,6 +1,8 @@
 {
   "3DFormat": "Format 3D",
   "NoMediaSourcesAvailable": "Aucune source média disponible",
+  "NoMediaStreamsAvailable": "Aucun flux multimédia n'est disponible pour la source sélectionnée",
+  "accept": "Accepter",
   "actor": "Acteur",
   "actors": "Acteurs",
   "addNewPerson": "Ajouter une nouvelle personne",
@@ -11,7 +13,8 @@
   "alphabetically": "Alphabétiquement",
   "appbar": {
     "tasks": {
-      "configSync": "Synchronisation des paramètres…"
+      "configSync": "Synchronisation des paramètres…",
+      "scanningItem": "Scan'{item}'…"
     },
     "tooltips": {
       "tasks": "Tâches en cours"
@@ -33,19 +36,27 @@
   "byArtist": "Par {artist}",
   "cancel": "Annuler",
   "castAndCrew": "Distribution & équipe",
+  "clipboardFail": "Echec de l'ajout au presse-papier",
+  "clipboardSuccess": "Copié dans le presse-papier",
+  "clipboardUnsupported": "La copie dans le presse-papiers n'est pas prise en charge dans ce navigateur",
+  "close": "Fermer",
   "collectionEmpty": "Cette bibliothèque est vide",
   "collections": "Collections",
   "communityRating": "Notation de la communauté",
   "confirm": "Confirmer",
   "connect": "Se connecter",
+  "contentType": "Type de contenu",
   "continueListening": "Poursuivre l'écoute",
   "continueWatching": "Poursuivre le visionnage",
+  "copyPrompt": "Copié le texte suivant dans le presse-papier ?",
+  "copyStreamURL": "Copier l'URL du flux",
   "criticRating": "Note des critiques",
   "customRating": "Note personnalisée",
   "darkModeToggle": "Activer le mode sombre",
   "dateAdded": "Date d'ajout",
   "delete": "Effacer",
   "deleteItem": "Suppression du média",
+  "deleteItemDescription": "Supprimer cet élément l'effacera à la fois du système de fichiers et de votre médiathèque. Voulez-vous vraiment continuer?",
   "details": "Détails",
   "dialog": {
     "upNext": {
@@ -59,6 +70,7 @@
   "disabled": "Désactivé",
   "discNumber": "Disque {discNumber}",
   "dislikes": "Pas aimés",
+  "downloadItem": "Télécharger | Tout télécharger",
   "edit": "Éditer",
   "editMetadata": "Modifier les informations",
   "editPerson": "Modifier la personne",
@@ -103,6 +115,7 @@
   },
   "identify": "Identifier",
   "identifyConfirmChanges": "Êtes-vous sûr que vous voulez remplacer '{originalItem}' par '{newIdentifiedItem}' ?",
+  "identifyInstructResult": "Vous pouvez cliquer sur l'une de ces cartes pour appliquer le résultat",
   "imageType": {
     "art": "Illustration",
     "backdrop": "Arrière-plan",
@@ -118,6 +131,8 @@
   },
   "images": "Images",
   "incorrectUsernameOrPassword": "Nom d'utilisateur ou mot de passe incorrect",
+  "instantMix": "Mix instantané",
+  "instantMixQueued": "Ajouter le mix instantané à la file de lecture",
   "item": {
     "artist": {
       "albums": "Albums",
@@ -196,27 +211,39 @@
     "noLogsFound": "Aucun journal trouvé"
   },
   "manualLogin": "Connexion manuelle",
-  "mediaInfo": {
-    "audioChannels": {
-      "name": "Pistes Audio :"
-    },
-    "audioCodec": {
-      "name": "Codec audio :"
-    },
-    "bitrate": {
-      "name": "Débit :"
-    },
-    "container": {
-      "name": "Container :"
-    },
-    "name": "Média",
-    "subtitleCodec": {
-      "name": "Codec pour les sous-titres :"
-    },
-    "videoCodec": {
-      "name": "Codec vidéo :"
-    }
-  },
+  "mediaInfo": "Information sur le média",
+  "mediaInfoAspectRatio": "Ratio de l'aspect",
+  "mediaInfoAudioChannelLayout": "Disposition",
+  "mediaInfoAudioChannels": "Chaînes",
+  "mediaInfoAudioSampleRate": "Taux d'échantillonnage",
+  "mediaInfoFileFormats": "Format",
+  "mediaInfoFilePath": "Chemin",
+  "mediaInfoFileSize": "Taille",
+  "mediaInfoFileTitle": "Titre",
+  "mediaInfoGenericBitrate": "Bitrate",
+  "mediaInfoGenericCodec": "Codec",
+  "mediaInfoGenericCodecTag": "Tag du codec",
+  "mediaInfoGenericIsDefault": "Défaut",
+  "mediaInfoGenericIsExternal": "Externe",
+  "mediaInfoGenericIsForced": "Forcer",
+  "mediaInfoGenericLanguage": "Langue",
+  "mediaInfoGenericProfile": "Profil",
+  "mediaInfoTitlesAudioCodec": "Audio | Audio {0}",
+  "mediaInfoTitlesEmbeddedImageCodec": "Image | Image {0}",
+  "mediaInfoTitlesSubtitleCodec": "Sous-titre| Sous-titre {0}",
+  "mediaInfoTitlesVideoCodec": "Vidéo | Vidéo {0}",
+  "mediaInfoVideoBitDepth": "Profondeurs de bits",
+  "mediaInfoVideoBitrate": "Bitrate",
+  "mediaInfoVideoColorPrimaries": "Couleurs primaires",
+  "mediaInfoVideoColorRange": "Gamme de couleur",
+  "mediaInfoVideoColorSpace": "Espace colorimétrique",
+  "mediaInfoVideoFrameRate": "Images par seconde",
+  "mediaInfoVideoLevel": "Niveau",
+  "mediaInfoVideoResolution": "Résolution",
+  "mediaInfoVideoScanInterlaced": "Entrelacé",
+  "mediaInfoVideoScanProgressive": "Progressif",
+  "mediaInfoVideoScanType": "Type de scan",
+  "mediaInfoVideoTimestamp": "Horodatage",
   "menu": "Menu",
   "metadata": {
     "source": "Source",
@@ -226,6 +253,7 @@
   },
   "metadataEditor": "Éditeur de métadonnées",
   "metadataNoResultsMatching": "Pas de résultat pour \"{search}\". Appuyer sur Entrée pour effectuer une nouvelle recherche.",
+  "metadataRefreshQueued": "Rafraichissement des métadonnées mise en file d'attente",
   "more": "Plus",
   "moreLikeArtist": "Similaires à {artist}",
   "moreLikeThis": "Similaires",
@@ -233,6 +261,7 @@
   "name": "Nom",
   "networks": "Réseaux",
   "nextUp": "À suivre",
+  "no": "Non",
   "noImagesFound": "Aucune image trouvée",
   "noInformationAvailable": "Aucune information disponible",
   "noNetworkConnection": "Aucune connexion réseau",
@@ -248,6 +277,7 @@
   "people": "Personnes",
   "person": "Personne",
   "play": "Lire",
+  "playCount": "Nombre de lectures",
   "playFromBeginning": "Lire depuis le début",
   "playback": {
     "addToQueue": "Ajouter à la file",
@@ -289,10 +319,10 @@
       "name": "Images corrompues :"
     },
     "decodedFrames": {
-      "name": "Images décodées :"
+      "name": "Images décodées :"
     },
     "droppedFrames": {
-      "name": "Images perdues :"
+      "name": "Images perdues :"
     },
     "name": "Lecteur",
     "playbackResolution": {
@@ -310,6 +340,8 @@
   "rating": "Critique",
   "refresh": "Rafraîchir",
   "refreshLibrary": "Actualiser la médiathèque",
+  "refreshMetadata": "Rafraîchir les métadonnées",
+  "refreshMetadataHint": "Les métadonnées sont actualisées en fonction des paramètres et des services Internet activés dans le tableau de bord",
   "releaseDate": "Date de sortie",
   "remoteDevices": "Appareils à distance",
   "replaceAllMetadata": "Remplacer toutes les métadonnées",
@@ -320,10 +352,12 @@
   "role": "Rôle",
   "save": "Sauvegarder",
   "saved": "Enregistré",
+  "scanForNewAndUpdatedFiles": "Actualiser pour détecter les nouveaux fichiers et les modifications",
   "search": {
     "name": "Recherche",
     "topResults": "Meilleurs résultats"
   },
+  "searchMissingMetadata": "Rechercher les métadonnées manquantes",
   "searchNoResults": "Aucun résultat trouvé",
   "seasonEpisode": "Saison {seasonNumber}, Épisode {episodeNumber}",
   "seasonEpisodeAbbrev": "S{seasonNumber} E{episodeNumber}",
@@ -484,9 +518,9 @@
       "name": "Taux de rafraîchissement :",
       "value": "fps {value}"
     },
-    "transcodingProgress": "Progression :",
+    "transcodingProgress": "Progression:",
     "transcodingReason": {
-      "name": "Raison : | Raisons :",
+      "name": "Raison: | Raisons:",
       "reasons": {
         "anamorphicVideoNotSupported": "Les vidéos anamorphiques ne sont pas supportées",
         "audioBitDepthNotSupported": "La résolution audio n'est pas supportée",
@@ -533,7 +567,7 @@
   "unliked": "Je n'aime pas",
   "unplayed": "Non lu",
   "upNext": "À suivre",
-  "upNextName": "À suivre : {upNextItemName}",
+  "upNextName": "À suivre: {upNextItemName}",
   "username": "Nom d'utilisateur",
   "validation": {
     "bothPasswordsSame": "Les deux mots de passe doivent être identiques",
@@ -568,5 +602,6 @@
   "writing": "Rédaction",
   "year": "Année",
   "years": "Années",
+  "yes": "Oui",
   "youMayAlsoLike": "Vous pourriez également aimer"
 }

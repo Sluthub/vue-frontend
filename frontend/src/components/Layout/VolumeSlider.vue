@@ -1,13 +1,12 @@
 <template>
   <div class="volume-slider d-flex align-center justify-center">
-    <v-btn
-      class="active-button"
+    <VBtn
       icon
       size="small"
       @click="playbackManager.toggleMute">
-      <v-icon :icon="icon" />
-    </v-btn>
-    <v-slider
+      <VIcon :icon="icon" />
+    </VBtn>
+    <VSlider
       v-model="sliderValue"
       class="volume-slider"
       hide-details
@@ -16,7 +15,7 @@
       <template #thumb-label>
         {{ Math.round(sliderValue) }}
       </template>
-    </v-slider>
+    </VSlider>
   </div>
 </template>
 

@@ -1,6 +1,6 @@
 <template>
   <div class="swiperContainer user-select-none">
-    <carousel-progress-bar
+    <CarouselProgressBar
       v-if="progressBar && topProgressBar && slides > 0"
       :pages="slides"
       :current-index="currentIndex"
@@ -10,7 +10,7 @@
       hoverable
       @animation-end="onAnimationEnd"
       @progress-clicked="onProgressClicked" />
-    <swiper
+    <Swiper
       :modules="modules"
       :class="useResponsiveClasses('swiper')"
       :initial-slide="0"
@@ -26,8 +26,8 @@
       @touch-start="onTouch"
       @touch-end="onTouch">
       <slot name="slides" />
-    </swiper>
-    <carousel-progress-bar
+    </Swiper>
+    <CarouselProgressBar
       v-if="progressBar && !topProgressBar && slides > 0"
       :pages="slides"
       :current-index="currentIndex"
@@ -42,7 +42,8 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { A11y, Parallax, EffectFade, Keyboard, Virtual } from 'swiper';
+import { A11y, Parallax, EffectFade, Keyboard, Virtual } from 'swiper/modules';
+import { Swiper } from 'swiper/vue';
 import type SwiperType from 'swiper';
 import 'swiper/css';
 import 'swiper/css/effect-fade';
@@ -50,7 +51,6 @@ import 'swiper/css/keyboard';
 import 'swiper/css/parallax';
 import 'swiper/css/a11y';
 import 'swiper/css/virtual';
-import { Swiper } from 'swiper/vue';
 import { useResponsiveClasses } from '@/composables';
 
 withDefaults(
@@ -70,8 +70,8 @@ withDefaults(
 );
 
 const emit = defineEmits<{
-  (e: 'on-slide-change', currentIndex: number, swiper: SwiperType): void;
-  (e: 'on-touch', isPaused: boolean, swiper: SwiperType): void;
+  'on-slide-change': [currentIndex: number, swiper: SwiperType];
+  'on-touch': [isPaused: boolean, swiper: SwiperType];
 }>();
 
 const modules = [A11y, Parallax, EffectFade, Keyboard, Virtual];
@@ -79,9 +79,13 @@ const modules = [A11y, Parallax, EffectFade, Keyboard, Virtual];
 const currentIndex = ref(0);
 const isPaused = ref(false);
 const swiperInstance = ref<SwiperType>();
-const setControlledSwiper = (instance: SwiperType): void => {
+
+/**
+ * Create a reference to the swiper instance
+ */
+function setControlledSwiper (instance: SwiperType): void {
   swiperInstance.value = instance;
-};
+}
 
 /**
  * HACK: Swiper seems to have a bug where the components inside of duplicated slides (when loop is enabled,
@@ -92,7 +96,7 @@ const setControlledSwiper = (instance: SwiperType): void => {
  * See https://github.com/nolimits4web/swiper/issues/2629 and https://github.com/surmon-china/vue-awesome-swiper/issues/483
  */
 function onSlideChange(): void {
-  currentIndex.value = swiperInstance.value?.realIndex || 0;
+  currentIndex.value = swiperInstance.value?.realIndex ?? 0;
 
   if (swiperInstance.value?.isBeginning || swiperInstance.value?.isEnd) {
     swiperInstance.value?.updateSlides();

@@ -164,27 +164,6 @@
     "noLogsFound": "Evidencije nisu pronađene"
   },
   "manualLogin": "Ručno prijavljivanje",
-  "mediaInfo": {
-    "audioChannels": {
-      "name": "Zvučni kanali:"
-    },
-    "audioCodec": {
-      "name": "Zvučni kodek:"
-    },
-    "bitrate": {
-      "name": "Protok bitova:"
-    },
-    "container": {
-      "name": "Kontejner:"
-    },
-    "name": "Mediji",
-    "subtitleCodec": {
-      "name": "Kodek za titlove:"
-    },
-    "videoCodec": {
-      "name": "Kodek za video snimke:"
-    }
-  },
   "menu": "Meni",
   "metadata": {
     "source": "Izvor",

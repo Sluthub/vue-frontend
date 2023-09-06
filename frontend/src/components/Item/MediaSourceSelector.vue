@@ -1,5 +1,5 @@
 <template>
-  <v-select
+  <VSelect
     v-model="currentSource"
     :items="selectSources"
     :label="selectProps.label"
@@ -10,9 +10,11 @@
       {{ i.value.Name }}
     </template>
     <template #item="{ item: i, props }">
-      <v-list-item v-bind="props" :title="i.value.Name" />
+      <VListItem
+        v-bind="props"
+        :title="i.value.Name" />
     </template>
-  </v-select>
+  </VSelect>
 </template>
 
 <script setup lang="ts">
@@ -27,22 +29,19 @@ const selectProps = defineProps<{
 }>();
 
 const emits = defineEmits<{
-  (e: 'input', newIndex: number): void;
+  input: [newIndex: number];
 }>();
 
-const defaultIndex = selectProps.defaultSourceIndex ?? 0;
-
-const currentSource = ref<MediaSourceInfo>(selectProps.sources[defaultIndex]);
+const currentSource = ref(
+  selectProps.sources[selectProps.defaultSourceIndex ?? 0]
+);
 const selectSources = computed(() => getItemizedSelect(selectProps.sources));
 
-watch(
-  () => currentSource.value,
-  (newSource) => {
-    const newIndex = selectProps.sources.findIndex(
-      (s) => s.Id === newSource.Id
-    );
+watch(currentSource, () => {
+  const newIndex = selectProps.sources.findIndex(
+    (s) => s.Id === currentSource.value.Id
+  );
 
-    emits('input', newIndex);
-  }
-);
+  emits('input', newIndex);
+});
 </script>

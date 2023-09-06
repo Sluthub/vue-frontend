@@ -1,65 +1,90 @@
 <template>
-  <v-main>
-    <v-app-bar color="transparent">
-      <app-bar-button-layout @click="$router.back()">
+  <VMain v-if="playbackManager.queue">
+    <VAppBar color="transparent">
+      <AppBarButtonLayout @click="$router.back()">
         <template #icon>
-          <v-icon>
-            <i-mdi-arrow-left />
-          </v-icon>
+          <VIcon>
+            <IMdiArrowLeft />
+          </VIcon>
         </template>
-      </app-bar-button-layout>
-    </v-app-bar>
-    <v-col class="px-0">
-      <swiper
-        v-if="playbackManager.queue"
-        class="d-flex justify-center align-center user-select-none"
-        :modules="modules"
-        :slides-per-view="4"
-        centered-slides
-        :autoplay="false"
-        effect="coverflow"
-        :coverflow-effect="coverflowEffect"
-        keyboard
-        a11y
-        virtual
-        @slide-change="onSlideChange"
-        @swiper="setControlledSwiper">
-        <swiper-slide
-          v-for="(item, index) in playbackManager.queue"
-          :key="`${item.Id}-${index}`"
-          :virtual-index="`${item.Id}-${index}`"
-          class="d-flex justify-center">
-          <div class="album-cover">
-            <blurhash-image :item="item" />
-          </div>
-        </swiper-slide>
-      </swiper>
-      <v-row class="justify-center align-center mt-3">
-        <v-col cols="6">
-          <v-row class="justify-center align-center">
-            <h1 class="text-h4">
-              {{ playbackManager.currentItem?.Name }}
-            </h1>
-          </v-row>
-          <v-row class="justify-center align-center">
-            <span class="text-subtitle">
-              {{ artistString }}
-            </span>
-          </v-row>
-          <v-row class="justify-center align-center mt-3">
-            <time-slider />
-          </v-row>
-          <v-row class="justify-center align-center">
-            <shuffle-button size="x-large" />
-            <previous-track-button size="x-large" />
-            <play-pause-button size="x-large" />
-            <next-track-button size="x-large" />
-            <repeat-button size="x-large" />
-          </v-row>
-        </v-col>
-      </v-row>
-    </v-col>
-  </v-main>
+      </AppBarButtonLayout>
+      <VSpacer />
+      <AppBarButtonLayout @click="isVisualizing = !isVisualizing">
+        <template #icon>
+          <VIcon>
+            <IDashiconsAlbum v-if="isVisualizing" />
+            <IMdiChartBar v-else />
+          </VIcon>
+        </template>
+      </AppBarButtonLayout>
+    </VAppBar>
+    <VCol class="px-0">
+      <VFadeTransition mode="out-in">
+        <Swiper
+          v-if="!isVisualizing"
+          class="d-flex justify-center align-center user-select-none"
+          :modules="modules"
+          :slides-per-view="4"
+          centered-slides
+          :autoplay="false"
+          effect="coverflow"
+          :coverflow-effect="coverflowEffect"
+          keyboard
+          a11y
+          virtual
+          @slide-change="onSlideChange"
+          @swiper="setControlledSwiper">
+          <SwiperSlide
+            v-for="(item, index) in playbackManager.queue"
+            :key="`${item.Id}-${index}`"
+            :virtual-index="`${item.Id}-${index}`"
+            class="d-flex justify-center">
+            <div class="album-cover presentation-height">
+              <BlurhashImage :item="item" />
+            </div>
+          </SwiperSlide>
+        </Swiper>
+        <MusicVisualizer
+          v-else
+          class="d-flex justify-center align-center user-select-none presentation-height" />
+      </VFadeTransition>
+      <VRow class="justify-center align-center mt-3">
+        <VCol cols="6">
+          <VRow class="justify-center align-center">
+            <VCol>
+              <VRow>
+                <h1 class="text-h4">
+                  {{ playbackManager.currentItem?.Name }}
+                </h1>
+              </VRow>
+              <VRow>
+                <span class="text-subtitle">
+                  {{ artistString }}
+                </span>
+              </VRow>
+            </VCol>
+            <!-- TODO: Fix alignment with the end time of TimeSlider -->
+            <VCol class="d-flex justify-end">
+              <LikeButton
+                v-if="playbackManager.currentItem"
+                :item="playbackManager?.currentItem"
+                size="x-large" />
+            </VCol>
+          </VRow>
+          <VRow class="justify-center align-center mt-3">
+            <TimeSlider />
+          </VRow>
+          <VRow class="justify-center align-center">
+            <ShuffleButton size="x-large" />
+            <PreviousTrackButton size="x-large" />
+            <PlayPauseButton size="x-large" />
+            <NextTrackButton size="x-large" />
+            <RepeatButton size="x-large" />
+          </VRow>
+        </VCol>
+      </VRow>
+    </VCol>
+  </VMain>
 </template>
 
 <route lang="yaml">
@@ -73,16 +98,16 @@ meta:
 </route>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, nextTick } from 'vue';
 import { ImageType } from '@jellyfin/sdk/lib/generated-client';
-import { A11y, Keyboard, Virtual, EffectCoverflow } from 'swiper';
+import { A11y, Keyboard, Virtual, EffectCoverflow } from 'swiper/modules';
+import { Swiper, SwiperSlide } from 'swiper/vue';
 import type SwiperType from 'swiper';
 import 'swiper/css';
 import 'swiper/css/a11y';
 import 'swiper/css/keyboard';
 import 'swiper/css/effect-coverflow';
 import 'swiper/css/virtual';
-import { Swiper, SwiperSlide } from 'swiper/vue';
 import { isNil } from 'lodash-es';
 import { useRoute } from 'vue-router';
 import { getBlurhash } from '@/utils/images';
@@ -92,12 +117,15 @@ const modules = [A11y, Keyboard, Virtual, EffectCoverflow];
 const route = useRoute();
 
 const playbackManager = playbackManagerStore();
+
 const coverflowEffect = {
   depth: 500,
   slideShadows: false,
   rotate: 0,
   stretch: -400
 };
+
+const isVisualizing = ref(false);
 
 const backdropHash = computed(() => {
   return playbackManager.currentItem
@@ -138,17 +166,24 @@ watch(
   () => {
     if (swiperInstance.value && !isNil(playbackManager.currentItemIndex)) {
       swiperInstance.value.slideTo(playbackManager.currentItemIndex);
-      route.meta.title = playbackManager.currentItem?.Name || '';
+      route.meta.title = playbackManager.currentItem?.Name ?? '';
     }
   },
   { immediate: true }
 );
 
+watch(isVisualizing, async () => {
+  if (!isVisualizing.value) {
+    await nextTick();
+    swiperInstance.value?.update();
+  }
+});
+
 /**
  * Handle slide changes
  */
 function onSlideChange(): void {
-  const index = swiperInstance.value?.activeIndex || 0;
+  const index = swiperInstance.value?.activeIndex ?? 0;
 
   playbackManager.currentItemIndex = index;
 }
@@ -157,8 +192,11 @@ function onSlideChange(): void {
 <style lang="scss" scoped>
 .album-cover {
   position: relative;
-  height: 65vh;
   min-width: 65vh;
   width: 65vh;
+}
+
+.presentation-height {
+  height: 65vh;
 }
 </style>

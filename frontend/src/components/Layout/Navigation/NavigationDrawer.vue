@@ -1,5 +1,5 @@
 <template>
-  <v-navigation-drawer
+  <VNavigationDrawer
     v-model="drawer"
     :temporary="$vuetify.display.mobile"
     :permanent="!$vuetify.display.mobile"
@@ -9,8 +9,8 @@
     :color="
       transparentLayout && !$vuetify.display.mobile ? 'transparent' : undefined
     ">
-    <v-list nav>
-      <v-list-item
+    <VList nav>
+      <VListItem
         v-for="item in items"
         :key="item.to"
         :to="item.to"
@@ -18,21 +18,23 @@
         exact
         :prepend-icon="item.icon"
         :title="item.title" />
-      <v-list-subheader>{{ $t('libraries') }}</v-list-subheader>
-      <v-list-item
-        v-for="library in drawerItems"
-        :key="library.to"
-        :to="library.to"
-        exact
-        :prepend-icon="library.icon"
-        :title="library.title" />
-    </v-list>
+      <VListSubheader>{{ $t('libraries') }}</VListSubheader>
+      <template v-for="library in drawerItems">
+        <VListItem
+          v-if="library"
+          :key="library.to"
+          :to="library.to"
+          exact
+          :prepend-icon="library.icon"
+          :title="library.title" />
+      </template>
+    </VList>
     <template #append>
-      <v-list nav>
-        <commit-link />
-      </v-list>
+      <VList nav>
+        <CommitLink />
+      </VList>
     </template>
-  </v-navigation-drawer>
+  </VNavigationDrawer>
 </template>
 
 <script setup lang="ts">
@@ -46,27 +48,28 @@ import IMdiMessageText from 'virtual:icons/mdi/message-text';
 import { userLibrariesStore } from '@/store';
 import { getLibraryIcon } from '@/utils/items';
 
+const props = defineProps<{
+  order?: number;
+}>();
 const route = useRoute();
 const userLibraries = userLibrariesStore();
 const { t } = useI18n();
 
-const props = defineProps<{
-  order?: number;
-}>();
-
 const drawer = inject<Ref<boolean>>('NavigationDrawer');
 
 const transparentLayout = computed(() => {
-  return route.meta.transparentLayout || false;
+  return route.meta.transparentLayout ?? false;
 });
 
 const drawerItems = computed(() => {
   return userLibraries.libraries.map((view: BaseItemDto) => {
-    return {
-      icon: getLibraryIcon(view.CollectionType),
-      title: view.Name || '',
-      to: `/library/${view.Id}`
-    };
+    if (view.Id) {
+      return {
+        icon: getLibraryIcon(view.CollectionType),
+        title: view.Name ?? '',
+        to: `/library/${view.Id}`
+      };
+    }
   });
 });
 

@@ -1,5 +1,5 @@
 <template>
-  <v-slider
+  <VSlider
     v-model="sliderValue"
     hide-details
     :max="runtime"
@@ -16,20 +16,18 @@
     <template #append>
       {{ formatTime(runtime) }}
     </template>
-  </v-slider>
+  </VSlider>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { playbackManagerStore } from '@/store';
-import { ticksToMs, formatTime } from '@/utils/time';
+import { formatTime } from '@/utils/time';
 
 const playbackManager = playbackManagerStore();
 const currentInput = ref(0);
 const clicked = ref(false);
-const runtime = computed(
-  () => ticksToMs(playbackManager.currentItem?.RunTimeTicks) / 1000
-);
+const runtime = computed(() => playbackManager.currentItemRuntime / 1000);
 const sliderValue = computed({
   get() {
     return clicked.value ? currentInput.value : playbackManager.currentTime;

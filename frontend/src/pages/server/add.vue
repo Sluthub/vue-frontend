@@ -1,13 +1,18 @@
 <template>
-  <v-container class="fill-height" fluid>
-    <v-row justify="center">
-      <v-col sm="6" md="6" lg="5">
+  <VContainer
+    class="fill-height"
+    fluid>
+    <VRow justify="center">
+      <VCol
+        sm="6"
+        md="6"
+        lg="5">
         <h1 class="text-h4 mb-6 text-center">
           Please wait while we establish a secure connection to the server...
         </h1>
-      </v-col>
-    </v-row>
-  </v-container>
+      </VCol>
+    </VRow>
+  </VContainer>
 </template>
 
 <route lang="yaml">

@@ -1,14 +1,14 @@
 <template>
   <settings-page page-title="settings.account.account">
     <template #actions>
-      <v-btn
+      <VBtn
         v-if="auth.currentUser"
         color="primary"
         class="ml-a"
         @click="onUploadClick"
       >
         {{ $t('settings.account.updateImage') }}
-      </v-btn>
+      </VBtn>
       <input
         ref="uploader"
         type="file"
@@ -17,17 +17,17 @@
         style="display: none"
         @change="select($event.target.files)"
       />
-      <v-btn
+      <VBtn
         v-if="auth.currentUser"
         color="error"
         class="ml-a"
         @click="deleteUserImage"
       >
         {{ $t('settings.account.removeImage') }}
-      </v-btn>
+      </VBtn>
     </template>
     <template #content>
-      <v-col class="text-center" cols="10" md="10" lg="3">
+      <VCol class="text-center" cols="10" md="10" lg="3">
         <user-image
           v-if="auth.currentUser"
           :user="auth.currentUser"
@@ -40,15 +40,15 @@
         <h1 class="mt-3 text-center" v-if="auth.currentUser">
           {{ auth.currentUser.Name }}
         </h1>
-      </v-col>
-      <v-col cols="10" md="10" lg="7">
-        <v-card class="pa-0 flex-grow-1">
-          <v-form v-model="valid">
-            <v-card-title>{{
+      </VCol>
+      <VCol cols="10" md="10" lg="7">
+        <VCard class="pa-0 flex-grow-1">
+          <VForm v-model="valid">
+            <VCardTitle>{{
               $t('settings.account.updatePassword')
-            }}</v-card-title>
-            <v-card-text class="pb-0">
-              <v-text-field
+            }}</VCardTitle>
+            <VCardText class="pb-0">
+              <VTextField
                 class="px-5 pt-5"
                 v-model="currentPassword"
                 variant="outlined"
@@ -56,8 +56,8 @@
                 :append-icon="showPassword ? IconEyeOff : IconEye"
                 :type="showPassword ? 'text' : 'password'"
                 @click:append="() => (showPassword = !showPassword)"
-              ></v-text-field>
-              <v-text-field
+              ></VTextField>
+              <VTextField
                 class="px-5"
                 v-model="newPassword"
                 variant="outlined"
@@ -65,8 +65,8 @@
                 :append-icon="showPassword2 ? IconEyeOff : IconEye"
                 :type="showPassword2 ? 'text' : 'password'"
                 @click:append="() => (showPassword2 = !showPassword2)"
-              ></v-text-field>
-              <v-text-field
+              ></VTextField>
+              <VTextField
                 class="px-5"
                 v-model="confirmPassword"
                 variant="outlined"
@@ -75,16 +75,16 @@
                 :type="showPassword2 ? 'text' : 'password'"
                 :rules="SamePasswordRules"
                 @click:append="() => (showPassword2 = !showPassword2)"
-              ></v-text-field>
-            </v-card-text>
-            <v-card-actions
+              ></VTextField>
+            </VCardText>
+            <VCardActions
               class="d-flex align-center pt-0"
               :class="{
                 'justify-end pr-9': !$vuetify.display.mobile,
                 'justify-center': $vuetify.display.mobile
               }"
             >
-              <v-btn
+              <VBtn
                 color="primary"
                 variant="depressed"
                 :disabled="!valid"
@@ -92,11 +92,11 @@
                 @click="updatePassword"
               >
                 {{ $t('settings.account.updatePassword') }}
-              </v-btn>
-            </v-card-actions>
-          </v-form>
-        </v-card>
-      </v-col>
+              </VBtn>
+            </VCardActions>
+          </VForm>
+        </VCard>
+      </VCol>
     </template>
   </settings-page>
 </template>

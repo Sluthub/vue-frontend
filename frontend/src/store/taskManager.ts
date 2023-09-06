@@ -1,7 +1,7 @@
 import { RemovableRef, useStorage } from '@vueuse/core';
-import { cloneDeep } from 'lodash-es';
 import { v4 } from 'uuid';
 import { watch } from 'vue';
+import { itemsStore } from '@/store';
 import { mergeExcludingUnknown } from '@/utils/data-manipulation';
 import { useRemote } from '@/composables';
 
@@ -50,7 +50,7 @@ const storeKey = 'taskManager';
  */
 class TaskManagerStore {
   /**
-   * == STATE ==
+   * == STATE SECTION ==
    */
   private _defaultState: TaskManagerState = {
     tasks: [],
@@ -59,7 +59,7 @@ class TaskManagerStore {
 
   private _state: RemovableRef<TaskManagerState> = useStorage(
     storeKey,
-    cloneDeep(this._defaultState),
+    structuredClone(this._defaultState),
     sessionStorage,
     {
       mergeDefaults: (storageValue, defaults) =>
@@ -84,20 +84,8 @@ class TaskManagerStore {
       );
     }
 
-    if (this.getTask(task.id)) {
-      this.updateTask(task);
-    } else {
+    if (this.getTask(task.id) === undefined) {
       this._state.value.tasks.push(task);
-    }
-  };
-
-  public updateTask = (updatedTask: RunningTask): void => {
-    const taskIndex = this._state.value.tasks.findIndex(
-      (task) => task.id === updatedTask.id
-    );
-
-    if (taskIndex >= 0) {
-      this._state.value.tasks[taskIndex] = updatedTask;
     }
   };
 
@@ -154,25 +142,26 @@ class TaskManagerStore {
 
         const progress = Number(data.Progress);
         const taskPayload = this.getTask(data.ItemId);
-        const payload: RunningTask = {
-          type: TaskType.LibraryRefresh,
-          id: data.ItemId,
-          progress
-        };
 
         /**
          * Start task if update its received and it doesn't exist in the store.
          * Usually when a running task is started somewhere else and the client is accssed later
          */
         if (taskPayload === undefined) {
-          this.startTask(payload);
-        } else {
-          if (progress >= 0 && progress < 100) {
-            payload.data = taskPayload.data;
-            this.updateTask(payload);
-          } else if (progress >= 0) {
-            this.finishTask(data.ItemId);
+          const item = itemsStore().getItemById(data.ItemId);
+
+          if (item?.Id && item.Name) {
+            this.startTask({
+              type: TaskType.LibraryRefresh,
+              id: item.Id,
+              data: item.Name,
+              progress
+            });
           }
+        } else if (progress >= 0 && progress < 100) {
+          taskPayload.progress = progress;
+        } else if (progress >= 0) {
+          this.finishTask(data.ItemId);
         }
       }
     };
@@ -186,7 +175,7 @@ class TaskManagerStore {
         Array.isArray(data.ItemsUpdated)
       ) {
         for (const id of data.ItemsUpdated) {
-          if (id) {
+          if (typeof id === 'string') {
             this.finishTask(id);
           }
         }

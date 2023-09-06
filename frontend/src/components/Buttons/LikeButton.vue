@@ -1,7 +1,8 @@
 <template>
-  <v-btn
+  <VBtn
     :icon="isFavorite ? IMdiHeart : IMdiHeartOutline"
-    size="small"
+    :size="size"
+    :color="isFavorite ? 'primary' : undefined"
     :loading="loading"
     @click.stop.prevent="isFavorite = !isFavorite" />
 </template>
@@ -14,7 +15,12 @@ import IMdiHeart from 'virtual:icons/mdi/heart';
 import IMdiHeartOutline from 'virtual:icons/mdi/heart-outline';
 import { useRemote } from '@/composables';
 
-const props = defineProps<{ item: BaseItemDto }>();
+const props = withDefaults(
+  defineProps<{ item: BaseItemDto; size?: string }>(),
+  {
+    size: 'small'
+  }
+);
 const remote = useRemote();
 const loading = ref(false);
 const isFavoriteOverride = ref<boolean | undefined>(undefined);
@@ -35,17 +41,16 @@ const isFavorite = computed({
 
       await (newValue
         ? remote.sdk.newUserApi(getUserLibraryApi).markFavoriteItem({
-            userId: remote.auth.currentUserId ?? '',
-            itemId: props.item.Id
-          })
+          userId: remote.auth.currentUserId ?? '',
+          itemId: props.item.Id
+        })
         : remote.sdk.newUserApi(getUserLibraryApi).unmarkFavoriteItem({
-            userId: remote.auth.currentUserId ?? '',
-            itemId: props.item.Id
-          }));
+          userId: remote.auth.currentUserId ?? '',
+          itemId: props.item.Id
+        }));
 
       isFavoriteOverride.value = newValue;
-    } catch {
-    } finally {
+    } catch {} finally {
       loading.value = false;
     }
   }

@@ -1,42 +1,56 @@
 <template>
-  <v-dialog v-model="model" width="auto" :fullscreen="$vuetify.display.mobile">
-    <v-card>
-      <v-card-title v-if="state.title" class="text-center">
+  <VDialog
+    v-model="model"
+    width="auto"
+    :fullscreen="$vuetify.display.mobile">
+    <VCard>
+      <VCardTitle
+        v-if="state.title"
+        class="text-center">
         {{ state.title }}
-      </v-card-title>
-      <v-card-subtitle v-if="state.subtitle" class="text-center">
+      </VCardTitle>
+      <VCardSubtitle
+        v-if="state.subtitle"
+        class="text-center">
         {{ state.subtitle }}
-      </v-card-subtitle>
+      </VCardSubtitle>
 
-      <v-divider />
-
-      <v-card-text class="d-flex text-center align-center justify-center">
-        {{ state.text }}
-      </v-card-text>
-      <v-card-actions class="align-center justify-center">
-        <v-btn variant="elevated" color="secondary" width="8em" @click="cancel">
+      <VDivider />
+      <!-- eslint-disable vue/no-v-html vue/no-v-text-v-html-on-component -->
+      <VCardText
+        class="d-flex text-center align-center justify-center"
+        v-html="sanitizeHtml(innerHtml)" />
+      <!-- eslint-enable vue/no-v-html vue/no-v-text-v-html-on-component -->
+      <VCardActions class="align-center justify-center">
+        <VBtn
+          variant="elevated"
+          color="secondary"
+          width="8em"
+          @click="cancel">
           {{ t('cancel') }}
-        </v-btn>
-        <v-btn
+        </VBtn>
+        <VBtn
           width="8em"
           variant="elevated"
           :color="state.confirmColor ?? 'error'"
           @click="confirm">
           {{ state.confirmText }}
-        </v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+        </VBtn>
+      </VCardActions>
+    </VCard>
+  </VDialog>
 </template>
 
 <script lang="ts">
 import { reactive, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useConfirmDialog as vUseConfirmDialog } from '@vueuse/core';
+import { sanitizeHtml } from '@/utils/html';
 
 interface ConfirmDialogState {
   title: string;
   text: string;
-  confirmText: string;
+  confirmText?: string;
   subtitle?: string;
   confirmColor?: string;
 }
@@ -44,7 +58,7 @@ interface ConfirmDialogState {
 const state = reactive<ConfirmDialogState>({
   title: '',
   text: '',
-  confirmText: '',
+  confirmText: undefined,
   subtitle: undefined,
   confirmColor: undefined
 });
@@ -80,7 +94,7 @@ export async function useConfirmDialog<T>(
   state.title = params.title || '';
   state.subtitle = params.subtitle;
   state.text = params.text || '';
-  state.confirmText = params.confirmText || '';
+  state.confirmText = params.confirmText;
   state.confirmColor = params.confirmColor;
 
   const { isCanceled } = await reveal();
@@ -96,7 +110,7 @@ export async function useConfirmDialog<T>(
 </script>
 
 <script setup lang="ts">
-import { useI18n } from 'vue-i18n';
-
 const { t } = useI18n();
+
+const innerHtml = computed(() => state.text ?? t('accept'));
 </script>

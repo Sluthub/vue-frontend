@@ -91,6 +91,7 @@
   "general": "Chung",
   "genericJellyfinPlaceholderDevice": "Thiết bị Jellyfin chung",
   "genres": "Thể Loại",
+  "goBack": "Quay lại",
   "googleCastPlaceholderDevice": "Thiết bị Google Cast",
   "guestStar": "Ngôi sao khách mời",
   "headerExternalIds": "ID bên ngoài",
@@ -101,6 +102,8 @@
       "recentlyAdded": "Được thêm gần đây"
     }
   },
+  "identify": "Nhận dạng",
+  "identifyInstructResult": "Bạn có thể nhấp vào một trong các thẻ này để áp dụng kết quả",
   "imageType": {
     "art": "Nghệ thuật",
     "backdrop": "Phông nền",
@@ -193,27 +196,6 @@
     "noLogsFound": "Không tìm thấy nhật ký nào"
   },
   "manualLogin": "Đăng nhập thủ công",
-  "mediaInfo": {
-    "audioChannels": {
-      "name": "Các kênh âm thanh:"
-    },
-    "audioCodec": {
-      "name": "Mã hóa âm thanh:"
-    },
-    "bitrate": {
-      "name": "Tốc độ bit:"
-    },
-    "container": {
-      "name": "Vùng chứa:"
-    },
-    "name": "Phương tiện",
-    "subtitleCodec": {
-      "name": "Mã hóa phụ đề:"
-    },
-    "videoCodec": {
-      "name": "Mã hóa video:"
-    }
-  },
   "menu": "Menu",
   "metadata": {
     "source": "Nguồn",

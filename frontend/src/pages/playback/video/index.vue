@@ -1,10 +1,10 @@
 <template>
-  <v-main
+  <VMain
     class="fullscreen-video-container fill-height"
     :class="{ 'cursor-none': !overlay }"
     @mousemove="handleMouseMove"
     @touchend="handleMouseMove">
-    <v-overlay
+    <VOverlay
       v-model="overlay"
       contained
       scrim="transparent"
@@ -15,19 +15,21 @@
         <div class="osd-top pt-s pl-s pr-s">
           <div class="d-flex align-center py-2 px-4">
             <div class="d-flex">
-              <v-btn :icon="IMdiClose" @click="playbackManager.stop" />
-              <v-btn
+              <VBtn
+                :icon="IMdiClose"
+                @click="playbackManager.stop" />
+              <VBtn
                 :icon="IMdiChevronDown"
                 @click="playerElement.toggleFullscreenVideoPlayer" />
             </div>
             <div class="d-flex ml-auto">
-              <cast-button />
+              <CastButton />
             </div>
           </div>
         </div>
         <div class="osd-bottom pb-s pl-s pr-s">
           <div class="pa-4">
-            <time-slider />
+            <TimeSlider />
             <div
               class="controls-wrapper d-flex align-stretch justify-space-between">
               <div
@@ -36,7 +38,7 @@
                 <template
                   v-if="
                     playbackManager.currentlyPlayingType ===
-                    BaseItemKind.Episode
+                      BaseItemKind.Episode
                   ">
                   <span class="mt-1 text-subtitle-1 text-truncate">
                     {{ playbackManager.currentItem?.Name }}
@@ -69,45 +71,49 @@
               </div>
               <div
                 class="d-flex player-controls align-center justify-start justify-md-center">
-                <previous-track-button class="mx-1" />
-                <play-pause-button class="mx-1" />
-                <next-track-button class="mx-1" />
+                <PreviousTrackButton class="mx-1" />
+                <PlayPauseButton class="mx-1" />
+                <NextTrackButton class="mx-1" />
               </div>
               <div class="d-flex aligh-center ml-auto ml-md-0">
-                <volume-slider v-if="$vuetify.display.smAndUp" class="mr-2" />
-                <queue-button :close-on-click="true" />
-                <subtitle-selection-button
+                <VolumeSlider
+                  v-if="$vuetify.display.smAndUp"
+                  class="mr-2" />
+                <QueueButton :close-on-click="true" />
+                <SubtitleSelectionButton
                   v-if="$vuetify.display.smAndUp"
                   v-model="subtitleSelectionButtonOpened" />
-                <playback-settings-button
+                <PlaybackSettingsButton
                   v-model="playbackSettingsButtonOpened" />
-                <v-btn
+                <VBtn
                   v-if="mediaControls.supportsPictureInPicture"
                   class="align-self-center"
                   icon
                   @click="mediaControls.togglePictureInPicture">
-                  <v-icon>
-                    <i-mdi-picture-in-picture-bottom-right />
-                  </v-icon>
-                </v-btn>
-                <v-btn
+                  <VIcon>
+                    <IMdiPictureInPictureBottomRight />
+                  </VIcon>
+                </VBtn>
+                <VBtn
                   v-if="fullscreen.isSupported"
                   class="align-self-center"
                   icon
                   @click="fullscreen.toggle">
-                  <v-icon>
-                    <i-mdi-fullscreen v-if="fullscreen.isFullscreen" />
-                    <i-mdi-fullscreen-exit v-else />
-                  </v-icon>
-                  <v-tooltip :text="$t('fullScreen')" location="top" />
-                </v-btn>
+                  <VIcon>
+                    <IMdiFullscreen v-if="fullscreen.isFullscreen" />
+                    <IMdiFullscreenExit v-else />
+                  </VIcon>
+                  <VTooltip
+                    :text="$t('fullScreen')"
+                    location="top" />
+                </VBtn>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </v-overlay>
-  </v-main>
+    </VOverlay>
+  </VMain>
 </template>
 
 <route lang="yaml">
@@ -252,22 +258,22 @@ watch(staticOverlay, (val) => {
   padding-bottom: 5em;
   background: linear-gradient(
     to bottom,
-    hsla(0, 0%, 0%, 0.75) 0%,
-    hsla(0, 0%, 0%, 0.74) 8.1%,
-    hsla(0, 0%, 0%, 0.714) 15.5%,
-    hsla(0, 0%, 0%, 0.672) 22.5%,
-    hsla(0, 0%, 0%, 0.618) 29%,
-    hsla(0, 0%, 0%, 0.556) 35.3%,
-    hsla(0, 0%, 0%, 0.486) 41.2%,
-    hsla(0, 0%, 0%, 0.412) 47.1%,
-    hsla(0, 0%, 0%, 0.338) 52.9%,
-    hsla(0, 0%, 0%, 0.264) 58.8%,
-    hsla(0, 0%, 0%, 0.194) 64.7%,
-    hsla(0, 0%, 0%, 0.132) 71%,
-    hsla(0, 0%, 0%, 0.078) 77.5%,
-    hsla(0, 0%, 0%, 0.036) 84.5%,
-    hsla(0, 0%, 0%, 0.01) 91.9%,
-    hsla(0, 0%, 0%, 0) 100%
+    rgb(var(--v-theme-background), 0.75) 0%,
+    rgb(var(--v-theme-background), 0.74) 8.1%,
+    rgb(var(--v-theme-background), 0.714) 15.5%,
+    rgb(var(--v-theme-background), 0.672) 22.5%,
+    rgb(var(--v-theme-background), 0.618) 29%,
+    rgb(var(--v-theme-background), 0.556) 35.3%,
+    rgb(var(--v-theme-background), 0.486) 41.2%,
+    rgb(var(--v-theme-background), 0.412) 47.1%,
+    rgb(var(--v-theme-background), 0.338) 52.9%,
+    rgb(var(--v-theme-background), 0.264) 58.8%,
+    rgb(var(--v-theme-background), 0.194) 64.7%,
+    rgb(var(--v-theme-background), 0.132) 71%,
+    rgb(var(--v-theme-background), 0.078) 77.5%,
+    rgb(var(--v-theme-background), 0.036) 84.5%,
+    rgb(var(--v-theme-background), 0.01) 91.9%,
+    rgb(var(--v-theme-background), 0) 100%
   );
 }
 
@@ -275,22 +281,22 @@ watch(staticOverlay, (val) => {
   padding-top: 6em;
   background: linear-gradient(
     to top,
-    hsla(0, 0%, 0%, 0.75) 0%,
-    hsla(0, 0%, 0%, 0.74) 8.1%,
-    hsla(0, 0%, 0%, 0.714) 15.5%,
-    hsla(0, 0%, 0%, 0.672) 22.5%,
-    hsla(0, 0%, 0%, 0.618) 29%,
-    hsla(0, 0%, 0%, 0.556) 35.3%,
-    hsla(0, 0%, 0%, 0.486) 41.2%,
-    hsla(0, 0%, 0%, 0.412) 47.1%,
-    hsla(0, 0%, 0%, 0.338) 52.9%,
-    hsla(0, 0%, 0%, 0.264) 58.8%,
-    hsla(0, 0%, 0%, 0.194) 64.7%,
-    hsla(0, 0%, 0%, 0.132) 71%,
-    hsla(0, 0%, 0%, 0.078) 77.5%,
-    hsla(0, 0%, 0%, 0.036) 84.5%,
-    hsla(0, 0%, 0%, 0.01) 91.9%,
-    hsla(0, 0%, 0%, 0) 100%
+    rgb(var(--v-theme-background), 0.75) 0%,
+    rgb(var(--v-theme-background), 0.74) 8.1%,
+    rgb(var(--v-theme-background), 0.714) 15.5%,
+    rgb(var(--v-theme-background), 0.672) 22.5%,
+    rgb(var(--v-theme-background), 0.618) 29%,
+    rgb(var(--v-theme-background), 0.556) 35.3%,
+    rgb(var(--v-theme-background), 0.486) 41.2%,
+    rgb(var(--v-theme-background), 0.412) 47.1%,
+    rgb(var(--v-theme-background), 0.338) 52.9%,
+    rgb(var(--v-theme-background), 0.264) 58.8%,
+    rgb(var(--v-theme-background), 0.194) 64.7%,
+    rgb(var(--v-theme-background), 0.132) 71%,
+    rgb(var(--v-theme-background), 0.078) 77.5%,
+    rgb(var(--v-theme-background), 0.036) 84.5%,
+    rgb(var(--v-theme-background), 0.01) 91.9%,
+    rgb(var(--v-theme-background), 0) 100%
   );
 }
 
