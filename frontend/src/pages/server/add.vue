@@ -10,6 +10,7 @@
         <h1 class="text-h4 mb-6 text-center">
           Please wait while we establish a secure connection to the server...
         </h1>
+        <!-- <AddServerForm /> -->
       </VCol>
     </VRow>
   </VContainer>

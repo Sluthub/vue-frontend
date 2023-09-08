@@ -192,10 +192,6 @@ const books = ref<BaseItemDto[]>([]);
 const photos = ref<BaseItemDto[]>([]);
 const activeTab = ref(4);
 
-const overview = computed(() =>
-  item.value.Overview ? sanitizeHtml(item.value.Overview, true) : undefined
-);
-
 const birthDate = computed(() =>
   item.value.PremiereDate
     ? useDateFns(format, new Date(item.value.PremiereDate), 'PPP').value

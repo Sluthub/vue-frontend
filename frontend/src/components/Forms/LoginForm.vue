@@ -30,6 +30,24 @@
       <VRow
         align="center"
         no-gutters>
+        <!-- <VCol class="mr-2">
+          <VBtn
+            v-if="isEmpty(user)"
+            to="/server/select"
+            block
+            size="large"
+            variant="elevated">
+            {{ $t('login.changeServer') }}
+          </VBtn>
+          <VBtn
+            v-else
+            block
+            size="large"
+            variant="elevated"
+            @click="$emit('change')">
+            {{ $t('login.changeUser') }}
+          </VBtn>
+        </VCol> -->
         <VCol class="mr-2">
           <VBtn
             :disabled="!valid"

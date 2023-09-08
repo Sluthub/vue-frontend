@@ -87,12 +87,6 @@ import {
   getItemSeriesDownloadMap
 } from '@/utils/items';
 import { playbackManagerStore, taskManagerStore } from '@/store';
-import {
-  DownloadableFile,
-  canBrowserDownloadItem,
-  downloadFiles
-} from '@/utils/file-download';
-import { useClipboardWrite } from '@/composables/use-clipboard';
 
 type MenuOption = {
   title: string;

@@ -304,7 +304,7 @@ import { useRemote } from '@/composables';
 const route = useRoute();
 const remote = useRemote();
 
-const itemId = (route.params as { itemId: string }).itemId.replaceAll('-', '');
+const { itemId } = route.params as { itemId: string };
 
 const item = (
   await remote.sdk.newUserApi(getUserLibraryApi).getItem({
@@ -317,9 +317,6 @@ const currentSource = ref<MediaSourceInfo>({});
 const currentVideoTrack = ref<number>();
 const currentAudioTrack = ref<number>();
 const currentSubtitleTrack = ref<number>();
-const overview = computed(() =>
-  item.Overview ? sanitizeHtml(item.Overview, true) : undefined
-);
 
 const crew = computed<BaseItemPerson[]>(() =>
   (item.People ?? []).filter((person) =>

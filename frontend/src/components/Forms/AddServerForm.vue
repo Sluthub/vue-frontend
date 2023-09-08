@@ -1,12 +1,13 @@
 <template>
   <div>
-<VContainer fill-height fluid>
-  <VRow align="center"
-      justify="center">
-      <VCol>Please wait while a secure connection is being established...</VCol>
-  </VRow>
+    <VContainer fill-height fluid>
+      <VRow align="center"
+          justify="center">
+          <VCol>Please wait while a secure connection is being established...</VCol>
+      </VRow>
 
-</VContainer>
+    </VContainer>
+
     <VForm
       v-model="valid"
       :disabled="loading"

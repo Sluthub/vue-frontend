@@ -43,15 +43,15 @@
         :disabled="loading"
         @change="onChangeFilter" />
       <VSpacer />
-      <PlayButton
+      <!-- <PlayButton
         v-if="library"
         :item="library"
         shuffle
-        :disabled="true" /> <!-- playButtonDisabled -->
+        :disabled="playButtonDisabled" />
       <PlayButton
         v-if="library"
         :item="library"
-        :disabled="true" /> <!-- playButtonDisabled -->
+        :disabled="playButtonDisabled" /> -->
     </VAppBar>
     <VContainer>
       <SkeletonItemGrid

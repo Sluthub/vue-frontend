@@ -199,10 +199,6 @@ const remote = useRemote();
 
 const item = ref<BaseItemDto>({});
 
-const overview = computed(() =>
-  item.value.Overview ? sanitizeHtml(item.value.Overview, true) : undefined
-);
-
 const crew = computed<BaseItemPerson[]>(() =>
   (item.value.People ?? []).filter((person) =>
     ['Director', 'Writer'].includes(person?.Type ?? '')

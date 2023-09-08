@@ -172,10 +172,6 @@ const appearances = ref<BaseItemDto[]>([]);
 const musicVideos = ref<BaseItemDto[]>([]);
 const activeTab = ref(0);
 
-const overview = computed(() =>
-  item.value.Overview ? sanitizeHtml(item.value.Overview, true) : undefined
-);
-
 const singles = computed<BaseItemDto[]>(() =>
   discography.value.filter(
     (album) =>
