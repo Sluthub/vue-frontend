@@ -286,7 +286,7 @@ async function refreshItems(): Promise<void> {
             parentId,
             includeItemTypes: viewType.value ? [viewType.value] : undefined,
             sortOrder: [sortAscending.value ? 'Descending' : 'Ascending'],
-            sortBy: [sortBy.value ?? 'ProductionYear'],
+            sortBy: [sortBy.value ?? 'PremiereDate'],
             recursive: recursive.value,
             filters: filters.value.status,
             genres: filters.value.genres,
