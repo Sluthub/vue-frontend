@@ -123,9 +123,15 @@ class RemotePluginAuth {
 
     serverUrl = serverUrl.replace(/\/$/, '').trim();
 
-    const candidates = await SDK.discovery.getRecommendedServerCandidates(
-      serverUrl
-    );
+    const candidates = [
+      {
+        address: serverUrl,
+        issues: [],
+        responseTime: 1,
+        score: 2,
+        systemInfo: {},
+      }
+    ];
     const best = SDK.discovery.findBestServer(candidates);
 
     if (best) {
